@@ -17,9 +17,9 @@ class KSU(object):
         chosenYs = Ys
         Qmin = float(np.inf)
         for i in xrange(len(gammaSet)):
-            gammaXs = self.createGammaNet(Xs, gammaSet(i))
+            gammaXs = utils.createGammaNet(Xs, gammaSet(i))
             m = len(gammaXs)
-            gammaYs = self.computeLabels(gammaXs, Xs, Ys, metric)
+            gammaYs = utils.computeLabels(gammaXs, Xs, Ys, metric)
             gammaAlpha = utils.computeAlpha(gammaXs, gammaYs, Xs, Ys)
             gammaQ = utils.computeQ(len(Xs), gammaAlpha, 2*m, delta)
             if (gammaQ < Qmin):
