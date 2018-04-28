@@ -1,4 +1,5 @@
 import numpy as np
+import sklearn.neighbors as nn
 
 from math import sqrt, log
 
@@ -24,5 +25,12 @@ def computeQ(n, m, alpha, delta):
 
     return firstTerm + secondTerm + thirdTerm
 
-def  computeAlpha():
-    return None
+def  computeAlpha(gammaXs, gammaYs, Xs, Ys, metric):
+    classifier = nn.KNeighborsClassifier(n_neighbors=1, metric=metric, algorithm='auto', n_jobs=-1)
+    classifier.fit(gammaXs, gammaYs)
+    return classifier.score(Xs, Ys)
+
+def computeGammaSet(gram):
+    gammaSet = np.unique(gram)
+    gammaSet = np.delete(gammaSet, 0)
+    return gammaSet
