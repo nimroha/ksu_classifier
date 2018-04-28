@@ -2,7 +2,6 @@ import numpy as np
 import sklearn.neighbors as nn
 
 from collections import Counter
-
 from math import sqrt, log
 
 def log2(x):
@@ -27,9 +26,6 @@ def computeQ(n, m, alpha, delta):
 
     return firstTerm + secondTerm + thirdTerm
 
-def  computeAlpha():
-    return None
-
 def computeLabels(gammaX, Xs, Ys, metric):
     gammaY = range(len*gammaX)
     h = nn.KNeighborsClassifier(n_neighbors=1, metric=metric, algorithm='auto', n_jobs=-1)
@@ -41,6 +37,12 @@ def computeLabels(gammaX, Xs, Ys, metric):
 
     return [c.most_common(1)[0][0] for c in groups.keys()]
 
+def  computeAlpha(gammaXs, gammaYs, Xs, Ys, metric):
+    classifier = nn.KNeighborsClassifier(n_neighbors=1, metric=metric, algorithm='auto', n_jobs=-1)
+    classifier.fit(gammaXs, gammaYs)
+    return classifier.score(Xs, Ys)
 
-
-
+def computeGammaSet(gram):
+    gammaSet = np.unique(gram)
+    gammaSet = np.delete(gammaSet, 0)
+    return gammaSet
