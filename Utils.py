@@ -1,4 +1,7 @@
 import numpy as np
+import sklearn.neighbors as nn
+
+from collections import Counter
 
 from math import sqrt, log
 
@@ -26,3 +29,18 @@ def computeQ(n, m, alpha, delta):
 
 def  computeAlpha():
     return None
+
+def computeLabels(gammaX, Xs, Ys, metric):
+    gammaY = range(len*gammaX)
+    h = nn.KNeighborsClassifier(n_neighbors=1, metric=metric, algorithm='auto', n_jobs=-1)
+    h.fit(gammaX, gammaY)
+
+    groups = {i:Counter() for i in gammaY}
+    for x, y in zip(Xs, Ys):
+        groups[h.predict(x)].update(y)
+
+    return [c.most_common(1)[0][0] for c in groups.keys()]
+
+
+
+
