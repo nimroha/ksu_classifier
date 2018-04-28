@@ -23,4 +23,4 @@ def computeQ(n, m, alpha, delta):
 
     return firstTerm + secondTerm + thirdTerm
 
-def  computeAlpha()
+def  computeAlpha():
