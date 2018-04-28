@@ -1,8 +1,9 @@
 import numpy as np
 
-from math import sqrt, \
-                 log2 as log
+from math import sqrt, log
 
+def log2(x):
+    return log(x, 2)
 
 def computeGram(elements, metric):
     # naive first go
@@ -17,10 +18,11 @@ def computeGram(elements, metric):
 def computeQ(n, m, alpha, delta):
     firstTerm = (n * alpha) / (n - m)
 
-    secondTerm = (m * log(n) - log(delta)) / (n - m)
+    secondTerm = (m * log2(n) - log2(delta)) / (n - m)
 
-    thirdTerm = sqrt(((n * m * alpha * log(n)) / (n - m) - log(delta)) / (n - m))
+    thirdTerm = sqrt(((n * m * alpha * log2(n)) / (n - m) - log2(delta)) / (n - m))
 
     return firstTerm + secondTerm + thirdTerm
 
 def  computeAlpha():
+    return None
