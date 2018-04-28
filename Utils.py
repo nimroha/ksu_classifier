@@ -25,7 +25,7 @@ def computeQ(n, m, alpha, delta):
 
     return firstTerm + secondTerm + thirdTerm
 
-def  computeAlpha(gammaXs, gammaYs, Xs, Ys, metric):
+def computeAlpha(gammaXs, gammaYs, Xs, Ys, metric):
     classifier = nn.KNeighborsClassifier(n_neighbors=1, metric=metric, algorithm='auto', n_jobs=-1)
     classifier.fit(gammaXs, gammaYs)
     return classifier.score(Xs, Ys)

@@ -10,9 +10,6 @@ class KSU(object):
     def predict(self, example):
         raise NotImplementedError("prediction not implemented")
 
-    def createGammaNet(self, Xs, gamma):
-        return None
-
     def KSU(self, Xs, Ys, metric, delta):
         gram = utils.computeGram(Xs, metric)
         gammaSet = utils.computeGammaSet(gram)
