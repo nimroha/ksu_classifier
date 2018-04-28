@@ -26,12 +26,12 @@ def computeQ(n, m, alpha, delta):
 
     return firstTerm + secondTerm + thirdTerm
 
-def computeLabels(gammaX, Xs, Ys, metric):
-    gammaY = range(len*gammaX)
+def computeLabels(gammaXs, Xs, Ys, metric):
+    gammaYs = range(len(gammaXs))
     h = nn.KNeighborsClassifier(n_neighbors=1, metric=metric, algorithm='auto', n_jobs=-1)
-    h.fit(gammaX, gammaY)
+    h.fit(gammaXs, gammaYs)
 
-    groups = {i:Counter() for i in gammaY}
+    groups = {i:Counter() for i in gammaYs}
     for x, y in zip(Xs, Ys):
         groups[h.predict(x)].update(y)
 
