@@ -1,35 +1,46 @@
-import Utils as utils
 import numpy as np
 import sklearn.neighbors as nn
 
+from Utils import computeGram, \
+                  computeGammaSet, \
+                  computeLabels, \
+                  computeAlpha, \
+                  computeQ
+
+def constructGammaNet(Xs, gram, gamma):
+    return []
+
 class KSU(object):
 
-    def __init__(self, compressedSet):
-        self.set = compressedSet
+    def __init__(self):
+        self.classifier = None
 
-    def predict(self, example):
-        raise NotImplementedError("prediction not implemented")
+    def predict(self, x):
+        if self.classifier is None:
+            raise RuntimeError("Predictor not generated yet. you must run KSU.makePredictor() before predicting")
+        else:
+            return self.classifier.predict(x)
 
-    def KSU(self, Xs, Ys, metric, delta):
-        gram = utils.computeGram(Xs, metric)
-        gammaSet = utils.computeGammaSet(gram)
-        chosenXs = Xs
-        chosenYs = Ys
-        Qmin = float(np.inf)
-        for i in xrange(len(gammaSet)):
-            gammaXs = utils.createGammaNet(Xs, gammaSet(i))
-            m = len(gammaXs)
-            gammaYs = utils.computeLabels(gammaXs, Xs, Ys, metric)
-            gammaAlpha = utils.computeAlpha(gammaXs, gammaYs, Xs, Ys)
-            gammaQ = utils.computeQ(len(Xs), gammaAlpha, 2*m, delta)
-            if (gammaQ < Qmin):
-                Qmin = gammaQ
-                chosenXs = gammaXs
-                chosenYs = gammaYs
+    def makePredictor(self, Xs, Ys, metric, delta):
+        gram     = computeGram(Xs, metric)
+        gammaSet = computeGammaSet(gram)
+        qMin     = float(np.inf)
 
-        classifier = nn.KNeighborsClassifier(n_neighbors=1, metric=metric, algorithm='auto', n_jobs=-1)
-        classifier.fit(chosenXs, chosenYs)
-        return lambda x : classifier.predict(x)
+        for gamma in gammaSet:
+            gammaXs = constructGammaNet(Xs, gram, gamma)
+            m       = len(gammaXs)
+            gammaYs = computeLabels(gammaXs, Xs, Ys, metric)
+            alpha   = computeAlpha(gammaXs, gammaYs, Xs, Ys)
+            q       = computeQ(len(Xs), alpha, 2 * m, delta)
+
+            if q < qMin:
+                qMin      = q
+                bestGamma = gamma
+                chosenXs  = gammaXs
+                chosenYs  = gammaYs
+
+        self.classifier = nn.KNeighborsClassifier(n_neighbors=1, metric=metric, algorithm='auto', n_jobs=-1)
+        self.classifier.fit(chosenXs, chosenYs)
 
 
 
