@@ -1,11 +1,17 @@
+import os
+import sys
 import numpy as np
 import sklearn.neighbors as nn
 
+sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'nn_condensing', 'Python Implementation'))
+
+from nn_condensing import distance
 from Utils import computeGram, \
                   computeGammaSet, \
                   computeLabels, \
                   computeAlpha, \
                   computeQ
+
 
 def constructGammaNet(Xs, gram, gamma):
     return []
