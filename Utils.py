@@ -1,8 +1,11 @@
 import numpy as np
-import sklearn.neighbors as nn
 
-from collections import Counter
-from math import sqrt, log
+from sklearn.neighbors import KNeighborsClassifier
+from collections       import Counter
+from math              import sqrt, log
+
+def parseInputData(dataPath):
+    return None
 
 def log2(x):
     return log(x, 2)
@@ -28,7 +31,7 @@ def computeQ(n, m, alpha, delta):
 
 def computeLabels(gammaXs, Xs, Ys, metric):
     gammaYs = range(len(gammaXs))
-    h = nn.KNeighborsClassifier(n_neighbors=1, metric=metric, algorithm='auto', n_jobs=-1)
+    h = KNeighborsClassifier(n_neighbors=1, metric=metric, algorithm='auto', n_jobs=-1)
     h.fit(gammaXs, gammaYs)
 
     groups = {i:Counter() for i in gammaYs}
@@ -38,7 +41,7 @@ def computeLabels(gammaXs, Xs, Ys, metric):
     return [c.most_common(1)[0][0] for c in groups.keys()]
 
 def computeAlpha(gammaXs, gammaYs, Xs, Ys, metric):
-    classifier = nn.KNeighborsClassifier(n_neighbors=1, metric=metric, algorithm='auto', n_jobs=-1)
+    classifier = KNeighborsClassifier(n_neighbors=1, metric=metric, algorithm='auto', n_jobs=-1)
     classifier.fit(gammaXs, gammaYs)
     return classifier.score(Xs, Ys)
 
@@ -46,6 +49,3 @@ def computeGammaSet(gram):
     gammaSet = np.unique(gram)
     gammaSet = np.delete(gammaSet, 0)
     return gammaSet
-
-def createGammaNet(Xs, gamma):
-    return None
