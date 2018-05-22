@@ -1,10 +1,12 @@
 import numpy as np
-import os
-import sys
+import time
 
 from sklearn.neighbors import KNeighborsClassifier
 from collections       import Counter
 from math              import sqrt, log
+
+def getDateTime():
+    return time.strftime('%d.%m.%y %H:%M:%S')
 
 def parseInputData(dataPath):
     raise NotImplemented
@@ -55,3 +57,4 @@ def computeGammaSet(gram):
     gammaSet = np.unique(gram)
     gammaSet = np.delete(gammaSet, 0)
     return gammaSet
+0504264147

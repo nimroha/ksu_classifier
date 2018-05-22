@@ -1,8 +1,8 @@
 import os
 import sys
 import numpy as np
-import logging
 import time
+
 from sklearn.neighbors import KNeighborsClassifier
 
 sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'nn_condensing', 'Python Implementation'))
@@ -40,6 +40,7 @@ class KSU(object):
         try:
             from Distance import dist # this only looks like an error
             self.metric = dist
+            self.logger.debug('Loaded dist function successfully')
         except:
             raise RuntimeError('Could not import dist function from {p}'
                                'make sure Distance.py and __init__.py exist in {p}'
@@ -63,18 +64,32 @@ class KSU(object):
         qMin     = float(np.inf)
         n        = len(self.Xs)
 
+        self.logger.debug('Choosing from {} gammas'.format(len(gammaSet)))
         for gamma in gammaSet:
-            gammaXs = constructGammaNet(self.Xs, self.gram, gamma, self.prune)
-            gammaYs = computeLabels(gammaXs, self.Xs, self.Ys, self.gram, self.metric)
-            alpha   = computeAlpha(gammaXs, gammaYs, self.Xs, self.Ys)
-            m       = len(gammaXs)
-            q       = computeQ(n, alpha, 2 * m, delta)
+            tStartGamma  = time.time()
+            gammaXs      = constructGammaNet(self.Xs, self.gram, gamma, self.prune)
+            tStartLabel  = time.time()
+            gammaYs      = computeLabels(gammaXs, self.Xs, self.Ys, self.gram, self.metric)
+            alpha        = computeAlpha(gammaXs, gammaYs, self.Xs, self.Ys)
+            m            = len(gammaXs)
+            q            = computeQ(n, alpha, 2 * m, delta)
+
+            self.logger.debug(
+                'For gamma: {g}, net construction took {nt}s, label choosing took {lt}s, q: {q}'.format(
+                    g=gamma,
+                    q=q,
+                    nt=tStartLabel - tStartGamma,
+                    lt=time.time() - tStartLabel))
 
             if q < qMin:
                 qMin      = q
                 bestGamma = gamma
                 chosenXs  = gammaXs
                 chosenYs  = gammaYs
+
+        self.logger.info('Chosen best gamma: {g}, which achieved q: {q}'.format(
+            g=bestGamma,
+            q=qMin))
 
         self.classifier = KNeighborsClassifier(n_neighbors=1, metric=self.metric, algorithm='auto', n_jobs=-1)
         self.classifier.fit(chosenXs, chosenYs)
