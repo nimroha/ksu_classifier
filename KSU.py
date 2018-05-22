@@ -29,9 +29,28 @@ def constructGammaNet(Xs, gram, gamma, prune):
 
 class KSU(object):
 
-    def __init__(self, prune=False):
+    def __init__(self, Xs, Ys, gramPath, metricPath, logger, prune=False):
         self.classifier = None
+        self.Xs         = Xs
+        self.Ys         = Ys
         self.prune      = prune
+        self.logger     = logger
+
+        sys.path.append(metricPath)
+        try:
+            from Distance import dist # this only looks like an error
+            self.metric = dist
+        except:
+            raise RuntimeError('Could not import dist function from {p}'
+                               'make sure Distance.py and __init__.py exist in {p}'
+                               'and that Distance.py has a function dist(a, b)')
+
+        if gramPath is None:
+            self.logger.info('Computing Gram matrix...')
+            self.gram = computeGram(self.Xs, self.metric)
+        else:
+            self.logger.info('Loading Gram matrix from file...')
+            self.gram = np.load(gramPath) # TODO if we change from numpy, change here
 
     def predict(self, x):
         if self.classifier is None:
@@ -39,17 +58,17 @@ class KSU(object):
         else:
             return self.classifier.predict(x)
 
-    def makePredictor(self, Xs, Ys, metric, delta):
-        gram     = computeGram(Xs, metric)
-        gammaSet = computeGammaSet(gram)
+    def makePredictor(self, delta):
+        gammaSet = computeGammaSet(self.gram)
         qMin     = float(np.inf)
+        n        = len(self.Xs)
 
         for gamma in gammaSet:
-            gammaXs = constructGammaNet(Xs, gram, gamma, self.prune)
+            gammaXs = constructGammaNet(self.Xs, self.gram, gamma, self.prune)
+            gammaYs = computeLabels(gammaXs, self.Xs, self.Ys, self.gram, self.metric)
+            alpha   = computeAlpha(gammaXs, gammaYs, self.Xs, self.Ys)
             m       = len(gammaXs)
-            gammaYs = computeLabels(gammaXs, Xs, Ys, metric)
-            alpha   = computeAlpha(gammaXs, gammaYs, Xs, Ys)
-            q       = computeQ(len(Xs), alpha, 2 * m, delta)
+            q       = computeQ(n, alpha, 2 * m, delta)
 
             if q < qMin:
                 qMin      = q
@@ -57,7 +76,7 @@ class KSU(object):
                 chosenXs  = gammaXs
                 chosenYs  = gammaYs
 
-        self.classifier = KNeighborsClassifier(n_neighbors=1, metric=metric, algorithm='auto', n_jobs=-1)
+        self.classifier = KNeighborsClassifier(n_neighbors=1, metric=self.metric, algorithm='auto', n_jobs=-1)
         self.classifier.fit(chosenXs, chosenYs)
 
 

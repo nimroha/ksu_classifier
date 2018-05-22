@@ -2,6 +2,8 @@ import sys
 import argparse
 import logging
 
+from Utils import parseInputData
+from KSU   import KSU
 
 def main(argv=None):
 
@@ -9,19 +11,24 @@ def main(argv=None):
         argv = sys.argv
 
     parser = argparse.ArgumentParser(description='Generate a KSU classifier')
-    parser.add_argument('--data',        help='Path to input data file (in space separated key value format)',                                      required=True)
-    parser.add_argument('--metric_mode', help='"dist" - distances will be computed from the function provided in the file <dist_path>'
-                                              '"gram" - distances will be taken from the gram matrix provided in <gram> (higher efficiency mode)',  required=True)
-    parser.add_argument('--gram',        help='Path to a precomputed gram matrix (in ... format)',                                                  default=None) # TODO decide wiich format. npz/panda/csv?
-    parser.add_argument('--dist_path',   help='Absolute path to a python file with a function named "dist(a, b)" that'
-                                              'computes the distance between a and b by any metric of choice',                                      default=None)
+    parser.add_argument('--data',  help='Path to input data file (in space separated key value format)',           required=True)
+    parser.add_argument('--gram',  help='Path to a precomputed gram matrix (in ... format)',                       default=None) # TODO decide which format. npz/panda/csv?
+    parser.add_argument('--dist',  help='Absolute path to a directory (containing __init__.py) with a python file'
+                                        'named Distance.py with a function named "dist(a, b)" that computes'
+                                        'the distance between a and b by any metric of choice',                    required=True)
 
     args = parser.parse_args()
+
+    dataPath = args.data
+    distPath = args.dist
+    gramPath = args.gram
 
     logger = logging.getLogger('KSU')
     logger.addHandler(logging.StreamHandler(sys.stdout))
 
-    logger.info('Reading data')
+    logger.info('Reading data...')
+    parseInputData(dataPath)
+
 
 
 

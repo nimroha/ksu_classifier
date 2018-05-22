@@ -1,22 +1,28 @@
 import numpy as np
+import os
+import sys
 
 from sklearn.neighbors import KNeighborsClassifier
 from collections       import Counter
 from math              import sqrt, log
 
 def parseInputData(dataPath):
+    raise NotImplemented
     return None
 
 def log2(x):
     return log(x, 2)
 
-def computeGram(elements, metric):
-    # naive first go
-    n = len(elements)
+def computeGram(elements, dist):
+
+    n    = len(elements)
     gram = np.array((n, n))
     for i in range(n):
-        for j in range(n):
-            gram[i,j] = metric(elements[i], elements[j])
+        for j in range(n - i):
+            gram[i,j] = dist(elements[i], elements[j])
+
+    lowTriIdxs       = np.tril_indices(n) #TODO make sure gram is upper triangular after the loop
+    gram[lowTriIdxs] = gram.T[lowTriIdxs]
 
     return gram
 
@@ -29,7 +35,7 @@ def computeQ(n, m, alpha, delta):
 
     return firstTerm + secondTerm + thirdTerm
 
-def computeLabels(gammaXs, Xs, Ys, metric):
+def computeLabels(gammaXs, Xs, Ys, gram, metric):
     gammaYs = range(len(gammaXs))
     h = KNeighborsClassifier(n_neighbors=1, metric=metric, algorithm='auto', n_jobs=-1)
     h.fit(gammaXs, gammaYs)
