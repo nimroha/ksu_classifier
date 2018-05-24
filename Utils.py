@@ -9,8 +9,8 @@ def getDateTime():
     return time.strftime('%d.%m.%y %H:%M:%S')
 
 def parseInputData(dataPath):
-    raise NotImplemented
-    return None
+    data = np.load(dataPath)
+    return data # TODO return as dict (like in w2v-parseNPZ)
 
 def log2(x):
     return log(x, 2)

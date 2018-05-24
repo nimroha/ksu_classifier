@@ -29,22 +29,13 @@ def constructGammaNet(Xs, gram, gamma, prune):
 
 class KSU(object):
 
-    def __init__(self, Xs, Ys, gramPath, metricPath, logger, prune=False):
+    def __init__(self, Xs, Ys, gramPath, metric, logger, prune=False):
         self.classifier = None
         self.Xs         = Xs
         self.Ys         = Ys
         self.prune      = prune
         self.logger     = logger
-
-        sys.path.append(metricPath)
-        try:
-            from Distance import dist # this only looks like an error
-            self.metric = dist
-            self.logger.debug('Loaded dist function successfully')
-        except:
-            raise RuntimeError('Could not import dist function from {p}'
-                               'make sure Distance.py and __init__.py exist in {p}'
-                               'and that Distance.py has a function dist(a, b)')
+        self.metric     = metric
 
         if gramPath is None:
             self.logger.info('Computing Gram matrix...')
