@@ -10,6 +10,9 @@ def L1(a, b):
 def L2(a, b):
     return np.linalg.norm(a - b, ord=2)
 
+def Ln(n):
+    return lambda a, b: np.linalg.norm(a - b, ord=n)
+
 def editDistance(a, b):
     return editdistance.eval(a, b)
 

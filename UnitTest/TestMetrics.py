@@ -30,7 +30,7 @@ class TestEarthMoverDistance(unittest.TestCase):
         u_weights = [1.4, 0.9, 3.1, 7.2]
         v_weights = [3.2, 3.5]
         d = earthMoverDistance(u, v, u_weights, v_weights)
-        self.assertEqual(d, 4.0781331438047861)
+        self.assertEqual(d, 4.078133143804786)
 
 if __name__ == "__main__":
     #So you can run tests from this module individually.

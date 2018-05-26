@@ -57,4 +57,3 @@ def computeGammaSet(gram):
     gammaSet = np.unique(gram)
     gammaSet = np.delete(gammaSet, 0)
     return gammaSet
-0504264147
