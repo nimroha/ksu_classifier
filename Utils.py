@@ -55,5 +55,31 @@ def computeGammaSet(gram):
     gammaSet = np.delete(gammaSet, 0)
     return gammaSet
 
+def findIndices(array, elements):
+    return filter(lambda x: x is not None, [array.index(e) if e in array else None for e in elements])
+
 def optimizedComputeLabels(gammaXs, Xs, Ys, gram, metric):
+    m          = len(gammaXs)
+    n          = len(Xs)
+    taken      = np.full([n], False, dtype=bool)
+    slice      = findIndices(Xs, gammaXs)
+    gammmaGram = gram[:, slice]
+    flatGram   = np.reshape(gammmaGram, [-1])
+    flatYs     = Ys * m
+    flatIdxs   = [j for sublist in [[e] * m for e in range(m)] for j in sublist]
+    augGram    = np.stack((flatGram, flatYs, flatIdxs), axis=1)
+    augGram    = augGram[np.argsort(augGram[:, 0])]
+
+    groups = {i: Counter() for i in range(m)}
+    for i in range(n):
+        row = augGram[i,:]
+        if taken[row[2]]:
+           continue
+
+        groups[row[]]
+
+
+
+
+
     raise NotImplemented
