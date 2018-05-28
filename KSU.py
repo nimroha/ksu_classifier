@@ -60,13 +60,13 @@ class KSU(object):
 
         self.logger.debug('Choosing from {} gammas'.format(len(gammaSet)))
         for gamma in gammaSet:
-            tStartGamma  = time()
-            gammaXs      = constructGammaNet(self.Xs, self.gram, gamma, self.prune)
-            tStartLabel  = time()
-            gammaYs      = computeLabels(gammaXs, self.Xs, self.Ys, self.gram, self.metric)
-            alpha        = computeAlpha(gammaXs, gammaYs, self.Xs, self.Ys)
-            m            = len(gammaXs)
-            q            = computeQ(n, alpha, 2 * m, delta)
+            tStartGamma = time()
+            gammaXs     = constructGammaNet(self.Xs, self.gram, gamma, self.prune)
+            tStartLabel = time()
+            gammaYs     = computeLabels(gammaXs, self.Xs, self.Ys, self.gram, self.metric)
+            alpha       = computeAlpha(gammaXs, gammaYs, self.Xs, self.Ys)
+            m           = len(gammaXs)
+            q           = computeQ(n, alpha, 2 * m, delta)
 
             self.logger.debug(
                 'For gamma: {g}, net construction took {nt:.3f}s, label choosing took {lt:.3f}s, q: {q}'.format(
