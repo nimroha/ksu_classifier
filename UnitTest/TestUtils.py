@@ -1,4 +1,5 @@
 import unittest
+import sys
 
 import Utils
 
@@ -20,5 +21,5 @@ class TestComputeGram(unittest.TestCase):
         self.fail()
 
 if __name__ == "__main__":
-    #So you can run tests from this module individually.
-    unittest.main()
+    # So you can run tests from this module individually.
+    sys.exit(unittest.main())

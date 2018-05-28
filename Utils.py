@@ -15,8 +15,7 @@ def parseInputData(dataPath):
 def log2(x):
     return log(x, 2)
 
-def computeGram(elements, dist):
-
+def computeGram(elements, dist): #unused
     n    = len(elements)
     gram = np.array((n, n))
     for i in range(n):
@@ -29,15 +28,13 @@ def computeGram(elements, dist):
     return gram
 
 def computeQ(n, m, alpha, delta):
-    firstTerm = (n * alpha) / (n - m)
-
+    firstTerm  = (n * alpha) / (n - m)
     secondTerm = (m * log2(n) - log2(delta)) / (n - m)
-
-    thirdTerm = sqrt(((n * m * alpha * log2(n)) / (n - m) - log2(delta)) / (n - m))
+    thirdTerm  = sqrt(((n * m * alpha * log2(n)) / (n - m) - log2(delta)) / (n - m))
 
     return firstTerm + secondTerm + thirdTerm
 
-def computeLabels(gammaXs, Xs, Ys, gram, metric):
+def computeLabels(gammaXs, Xs, Ys, gram, metric): # TODO deprecate after testing optimizedComputeLabels
     gammaYs = range(len(gammaXs))
     h = KNeighborsClassifier(n_neighbors=1, metric=metric, algorithm='auto', n_jobs=-1)
     h.fit(gammaXs, gammaYs)
@@ -57,3 +54,6 @@ def computeGammaSet(gram):
     gammaSet = np.unique(gram)
     gammaSet = np.delete(gammaSet, 0)
     return gammaSet
+
+def optimizedComputeLabels(gammaXs, Xs, Ys, gram, metric):
+    raise NotImplemented

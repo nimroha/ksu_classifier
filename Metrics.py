@@ -4,13 +4,7 @@ from scipy.stats import wasserstein_distance
 
 #TODO add more
 
-def L1(a, b):
-    return np.linalg.norm(a - b, ord=1)
-
-def L2(a, b):
-    return np.linalg.norm(a - b, ord=2)
-
-def Ln(n):
+def makeLn(n):
     return lambda a, b: np.linalg.norm(a - b, ord=n)
 
 def editDistance(a, b):

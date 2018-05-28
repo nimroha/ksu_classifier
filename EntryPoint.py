@@ -2,12 +2,16 @@ import sys
 import argparse
 import logging
 
+from sklearn.neighbors.base import VALID_METRICS
+
 import Metrics
 from Utils import parseInputData, getDateTime
 from KSU   import KSU
 
-METRICS = {'L1': Metrics.l1,
-           'L2': Metrics.l2}
+METRICS = {v:v for v in VALID_METRICS['brute'] if v != 'precomputed'}
+METRICS['EditDistance'] = Metrics.editDistance
+METRICS['EarthMover']   = Metrics.earthMoverDistance
+
 def main(argv=None):
 
     if argv is None:
@@ -42,9 +46,18 @@ def main(argv=None):
             metric = dist
             logger.debug('Loaded dist function successfully')
         except:
-            raise RuntimeError('Could not import dist function from {p}'
-                               'make sure Distance.py and __init__.py exist in {p}'
-                               'and that Distance.py has a function dist(a, b)')
+            raise RuntimeError(
+                'Could not import dist function from {p}'
+                'make sure Distance.py and __init__.py exist in {p}'
+                'and that Distance.py has a function dist(a, b)'.format(p=customMetricPath))
+    else:
+        if metric not in METRICS.keys():
+            raise RuntimeError(
+                '"{m}" is not a built-in metric. use one of {ms}'
+                'or provide a custom metric with the --custom_metric argument'.format(
+                    m=metric,
+                    ms=METRICS.keys()
+                ))
 
     logger.info('Reading data...')
     data = parseInputData(dataPath)

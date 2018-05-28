@@ -1,9 +1,10 @@
 import os
 import sys
 import numpy as np
-import time
 
-from sklearn.neighbors import KNeighborsClassifier
+from time                     import time
+from sklearn.neighbors        import KNeighborsClassifier
+from sklearn.metrics.pairwise import pairwise_distances
 
 sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'nn_condensing', 'Python Implementation'))
 from nn_condensing import nn # this only looks like an error because the IDE doesn't understand the ugly hack above ^
@@ -39,7 +40,9 @@ class KSU(object):
 
         if gramPath is None:
             self.logger.info('Computing Gram matrix...')
-            self.gram = computeGram(self.Xs, self.metric)
+            tStartGram = time()
+            self.gram  = pairwise_distances(self.Xs, metric=self.metric, n_jobs=-1)
+            self.logger.debug('Gram computation took {:.3f}s'.format(time() - tStartGram))
         else:
             self.logger.info('Loading Gram matrix from file...')
             self.gram = np.load(gramPath) # TODO if we change from numpy, change here
@@ -57,20 +60,20 @@ class KSU(object):
 
         self.logger.debug('Choosing from {} gammas'.format(len(gammaSet)))
         for gamma in gammaSet:
-            tStartGamma  = time.time()
+            tStartGamma  = time()
             gammaXs      = constructGammaNet(self.Xs, self.gram, gamma, self.prune)
-            tStartLabel  = time.time()
+            tStartLabel  = time()
             gammaYs      = computeLabels(gammaXs, self.Xs, self.Ys, self.gram, self.metric)
             alpha        = computeAlpha(gammaXs, gammaYs, self.Xs, self.Ys)
             m            = len(gammaXs)
             q            = computeQ(n, alpha, 2 * m, delta)
 
             self.logger.debug(
-                'For gamma: {g}, net construction took {nt}s, label choosing took {lt}s, q: {q}'.format(
+                'For gamma: {g}, net construction took {nt:.3f}s, label choosing took {lt:.3f}s, q: {q}'.format(
                     g=gamma,
                     q=q,
                     nt=tStartLabel - tStartGamma,
-                    lt=time.time() - tStartLabel))
+                    lt=time() - tStartLabel))
 
             if q < qMin:
                 qMin      = q

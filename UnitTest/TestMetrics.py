@@ -1,4 +1,5 @@
 import unittest
+import sys
 
 from Metrics import earthMoverDistance
 
@@ -33,5 +34,5 @@ class TestEarthMoverDistance(unittest.TestCase):
         self.assertEqual(d, 4.078133143804786)
 
 if __name__ == "__main__":
-    #So you can run tests from this module individually.
-    unittest.main()
+    # So you can run tests from this module individually.
+    sys.exit(unittest.main())
