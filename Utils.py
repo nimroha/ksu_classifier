@@ -58,28 +58,29 @@ def computeGammaSet(gram):
 def findIndices(array, elements):
     return filter(lambda x: x is not None, [array.index(e) if e in array else None for e in elements])
 
-def optimizedComputeLabels(gammaXs, Xs, Ys, gram, metric):
-    m          = len(gammaXs)
-    n          = len(Xs)
-    taken      = np.full([n], False, dtype=bool)
-    slice      = findIndices(Xs, gammaXs)
-    gammmaGram = gram[:, slice]
-    flatGram   = np.reshape(gammmaGram, [-1])
-    flatYs     = Ys * m
-    flatIdxs   = [j for sublist in [[e] * m for e in range(m)] for j in sublist]
-    augGram    = np.stack((flatGram, flatYs, flatIdxs), axis=1)
-    augGram    = augGram[np.argsort(augGram[:, 0])]
+def optimizedComputeLabels(gammaXs, Xs, Ys, gram):
+    m                = len(gammaXs)
+    n                = len(Xs)
+    slice            = findIndices(Xs, gammaXs)
+    gammmaGram       = gram[:, slice]
+    flatGram         = np.reshape(gammmaGram, [-1])
+    perm             = np.argsort(flatGram)
+    flatYs           = np.array(Ys * m)[perm]
+    flatXIdxs        = np.array([j for l in [[e] * m for e in range(m)] for j in l])[perm]
+    flatNeighborIdxs = np.array(range(n) * m)[perm]
+    taken            = np.full([n], False, dtype=bool)
 
-    groups = {i: Counter() for i in range(m)}
-    for i in range(n):
-        row = augGram[i,:]
-        if taken[row[2]]:
+    numTaken = 0
+    groups   = {i: Counter() for i in range(m)}
+    for y, xIdx, neighborIdx in zip(flatYs, flatXIdxs, flatNeighborIdxs):
+        if numTaken == n:
+            break
+            
+        if taken[neighborIdx]:
            continue
 
-        groups[row[]]
+        groups[xIdx].update(y)
+        taken[neighborIdx] = True
+        numTaken += 1
 
-
-
-
-
-    raise NotImplemented
+    return [c.most_common(1)[0][0] for c in groups.keys()]
