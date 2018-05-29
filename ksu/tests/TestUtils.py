@@ -1,7 +1,6 @@
 import unittest
 import sys
 
-import Utils
 
 class TestComputeGram(unittest.TestCase):
 

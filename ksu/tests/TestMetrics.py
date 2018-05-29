@@ -1,7 +1,7 @@
 import unittest
 import sys
 
-from Metrics import earthMoverDistance
+from ksu.Metrics import earthMoverDistance
 
 class TestEarthMoverDistance(unittest.TestCase):
 
