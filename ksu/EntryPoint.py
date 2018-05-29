@@ -5,7 +5,7 @@ import logging
 from sklearn.neighbors.base import VALID_METRICS
 
 import Metrics
-from Utils import parseInputData, getDateTime
+from Utils import parseInputData
 from KSU   import KSU
 
 METRICS = {v:v for v in VALID_METRICS['brute'] if v != 'precomputed'}

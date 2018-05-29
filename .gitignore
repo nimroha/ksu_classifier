@@ -6,8 +6,15 @@ __pycache__/
 # C extensions
 *.so
 
+# IDE byproducts
 venv
 .idea
 
+# logs
 *.log
+
+# setup byproducts
+build/
+dist/
+ksu.egg*
 
