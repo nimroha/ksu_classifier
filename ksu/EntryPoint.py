@@ -2,15 +2,8 @@ import sys
 import argparse
 import logging
 
-from sklearn.neighbors.base import VALID_METRICS
-
-import Metrics
 from Utils import parseInputData
-from KSU   import KSU
-
-METRICS = {v:v for v in VALID_METRICS['brute'] if v != 'precomputed'}
-METRICS['EditDistance'] = Metrics.editDistance
-METRICS['EarthMover']   = Metrics.earthMoverDistance
+from KSU   import KSU, METRICS
 
 def main(argv=None):
 
@@ -18,12 +11,12 @@ def main(argv=None):
         argv = sys.argv
 
     parser = argparse.ArgumentParser(description='Generate a KSU classifier')
-    parser.add_argument('--data',          help='Path to input data file (in space separated key value format)',               required=True)
+    parser.add_argument('--data',          help='Path to input data file (in .npz format)',                                    required=True)
     parser.add_argument('--metric',        help='Metric to use (unless custom_metric is provided). {}'.format(METRICS.keys()), default='l2')
     parser.add_argument('--custom_metric', help='Absolute path to a directory (containing __init__.py) with a python file'
                                                 'named Distance.py with a function named "dist(a, b)" that computes'
                                                 'the distance between a and b by any metric of choice',                        default=None)
-    parser.add_argument('--gram',          help='Path to a precomputed gram matrix (in .npz format)',                          default=None) # TODO decide which format. npz/panda/csv?
+    parser.add_argument('--gram',          help='Path to a precomputed gram matrix (in .npz format)',                          default=None)
     parser.add_argument('--delta',         help='Delta parameter',                                                             default=0.1, type=float)  # TODO explain better, choose a good default
     parser.add_argument('--log_level',     help='Logging level',                                                               default='INFO')
 
@@ -53,16 +46,16 @@ def main(argv=None):
     else:
         if metric not in METRICS.keys():
             raise RuntimeError(
-                '"{m}" is not a built-in metric. use one of {ms}'
+                '"{m}" is not a built-in metric. use one of'
+                '{ms}'
                 'or provide a custom metric with the --custom_metric argument'.format(
                     m=metric,
-                    ms=METRICS.keys()
-                ))
+                    ms=METRICS.keys()))
 
     logger.info('Reading data...')
     data = parseInputData(dataPath)
 
-    ksu = KSU(data['X'], data['Y'], gramPath, metric, logger)
+    ksu = KSU(data['X'], data['Y'], metric, gramPath)
     h   = ksu.makePredictor(delta)
 
 

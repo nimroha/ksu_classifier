@@ -1,10 +1,18 @@
 import os
 import sys
+import logging
 import numpy as np
 
 from time                     import time
 from sklearn.neighbors        import KNeighborsClassifier
+from sklearn.neighbors.base   import VALID_METRICS
 from sklearn.metrics.pairwise import pairwise_distances
+
+import Metrics
+
+METRICS = {v:v for v in VALID_METRICS['brute'] if v != 'precomputed'}
+METRICS['EditDistance'] = Metrics.editDistance
+METRICS['EarthMover']   = Metrics.earthMoverDistance
 
 sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'nn_condensing', 'Python Implementation'))
 from nn_condensing import nn # this only looks like an error because the IDE doesn't understand the ugly hack above ^
@@ -30,13 +38,21 @@ def constructGammaNet(Xs, gram, gamma, prune):
 
 class KSU(object):
 
-    def __init__(self, Xs, Ys, gramPath, metric, logger, prune=False):
+    def __init__(self, Xs, Ys, metric, gramPath=None, prune=False):
         self.classifier = None
         self.Xs         = Xs
         self.Ys         = Ys
         self.prune      = prune
-        self.logger     = logger
+        self.logger     = logging.getLogger('KSU')
         self.metric     = metric
+
+        if isinstance(metric, str) and metric not in METRICS.keys():
+            raise RuntimeError(
+                '"{m}" is not a built-in metric. use one of'
+                '{ms}'
+                'or provide your own custom metric as a callable'.format(
+                    m=metric,
+                    ms=METRICS.keys()))
 
         if gramPath is None:
             self.logger.info('Computing Gram matrix...')
@@ -45,7 +61,7 @@ class KSU(object):
             self.logger.debug('Gram computation took {:.3f}s'.format(time() - tStartGram))
         else:
             self.logger.info('Loading Gram matrix from file...')
-            self.gram = np.load(gramPath) # TODO if we change from numpy, change here
+            self.gram = np.load(gramPath)
 
     def predict(self, x):
         if self.classifier is None:
