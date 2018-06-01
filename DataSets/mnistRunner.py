@@ -2,6 +2,7 @@ from mnist import MNIST
 from sklearn.utils import shuffle
 import numpy as np
 import logging
+from time import time
 
 from ksu import KSU
 
@@ -20,7 +21,11 @@ test = np.array(test[:999])
 testLabels = np.array(testLabels[:999])
 logger = logging.getLogger('KSU')
 
+start = time()
 ksuClassifier = KSU(train, trainLabels, 'l2')
+end = time()
+
+print("Train time: %d", end - start)
 
 predictedLabels = ksuClassifier.predict(test)
 error = np.mean(predictedLabels != testLabels)
