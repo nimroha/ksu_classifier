@@ -1,4 +1,0 @@
-[submodule "nn_condensing"]
-	path = nn_condensing
-	url = https://nimrodm_at_w2v@bitbucket.org/yKorsunsky/1-nn-condensing.git
-	ignore = all
