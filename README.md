@@ -14,7 +14,7 @@ Installation
  -----
  This package provides a class `KSU(Xs, Ys, metric, [gramPath, prune])`
  
- `Xs` and `Ys` our the data points and their respective labels as [numpy  arrays](https://docs.scipy.org/doc/numpy/reference/generated/numpy.array.html) 
+ `Xs` and `Ys` are the data points and their respective labels as [numpy  arrays](https://docs.scipy.org/doc/numpy/reference/generated/numpy.array.html) 
  
  `metric` is either a callable to compute the metric or a string that names one of our provided metrics (print `ksu.KSU.METRICS.keys()` for the full list) 
  
