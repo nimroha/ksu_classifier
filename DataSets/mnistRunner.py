@@ -1,36 +1,39 @@
+import sys
 from mnist import MNIST
 from sklearn.utils import shuffle
 import numpy as np
 import logging
 from time import time
 
-from ksu import KSU
+from ksu.KSU import KSU
 
-mnist_dir = 'C:\Users\yuvalnissan\Desktop\MNIST'
-mndata = MNIST(mnist_dir)
-mndata.gz = True
-mndata.load_training()
-mndata.load_testing()
+def main(argv=None):
 
-train, trainLabels = shuffle(mndata.train_images, mndata.train_labels)
-test, testLabels = shuffle(mndata.test_images, mndata.test_labels)
+    mnist_dir = 'C:\Users\yuvalnissan\Desktop\MNIST'
+    mndata = MNIST(mnist_dir)
+    mndata.gz = True
+    mndata.load_training()
+    mndata.load_testing()
 
-train = np.array(train[:9999])
-trainLabels = np.array(trainLabels[:9999])
-test = np.array(test[:999])
-testLabels = np.array(testLabels[:999])
-logger = logging.getLogger('KSU')
+    train, trainLabels = shuffle(mndata.train_images, mndata.train_labels)
+    test, testLabels = shuffle(mndata.test_images, mndata.test_labels)
 
-start = time()
-ksuClassifier = KSU(train, trainLabels, 'l2')
-end = time()
+    train = np.array(train[:9999])
+    trainLabels = np.array(trainLabels[:9999])
+    test = np.array(test[:999])
+    testLabels = np.array(testLabels[:999])
 
-print("Train time: %d", end - start)
+    start = time()
+    ksu = KSU(train, trainLabels, 'l2')
+    end = time()
 
-predictedLabels = ksuClassifier.predict(test)
-error = np.mean(predictedLabels != testLabels)
+    print("Train time: %d", end - start)
 
-print(error)
+    ksuClassifier = ksu.makePredictor(0.1)
+    predictedLabels = ksuClassifier.predict(test)
+    error = np.mean(predictedLabels != testLabels)
 
+    print(error)
 
-
+if __name__ == '__main__' :
+    sys.exit(main())
