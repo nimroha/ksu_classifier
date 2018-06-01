@@ -11,7 +11,7 @@ def main(argv=None):
         argv = sys.argv
 
     parser = argparse.ArgumentParser(description='Generate a KSU classifier')
-    parser.add_argument('--data',          help='Path to input data file (in .npz format)',                                    required=True)
+    parser.add_argument('--data',          help='Path to input data file (in .npz format with 2 nodes named X and Y)',         required=True)
     parser.add_argument('--metric',        help='Metric to use (unless custom_metric is provided). {}'.format(METRICS.keys()), default='l2')
     parser.add_argument('--custom_metric', help='Absolute path to a directory (containing __init__.py) with a python file'
                                                 'named Distance.py with a function named "dist(a, b)" that computes'

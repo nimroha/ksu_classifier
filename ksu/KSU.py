@@ -16,8 +16,7 @@ METRICS['EarthMover']   = Metrics.earthMoverDistance
 
 sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'nn_condensing', 'Python Implementation'))
 from nn_condensing import nn # this only looks like an error because the IDE doesn't understand the ugly hack above ^
-from Utils         import computeGram, \
-                          computeGammaSet, \
+from Utils         import computeGammaSet, \
                           computeLabels, \
                           computeAlpha, \
                           computeQ

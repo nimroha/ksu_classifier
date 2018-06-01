@@ -9,8 +9,13 @@ def getDateTime():
     return time.strftime('%d.%m.%y %H:%M:%S')
 
 def parseInputData(dataPath):
-    data = np.load(dataPath)
-    return data # TODO return as dict (like in w2v-parseNPZ)
+    nodes = np.load(dataPath)
+    try:
+        data = {node: nodes[node] for node in ['X', 'Y']}
+    except KeyError:
+        raise RuntimeError('file at {p} does not contain the nodes "X" "Y"'.format(dataPath))
+
+    return data
 
 def log2(x):
     return log(x, 2)
