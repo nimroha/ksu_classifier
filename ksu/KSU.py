@@ -68,7 +68,7 @@ class KSU(object):
         else:
             return self.classifier.predict(x)
 
-    def makePredictor(self, delta):
+    def makePredictor(self, delta=0.05):
         gammaSet = computeGammaSet(self.gram)
         qMin     = float(np.inf)
         n        = len(self.Xs)
