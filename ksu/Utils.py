@@ -41,7 +41,7 @@ def computeQ(n, m, alpha, delta):
 
 def computeLabels(gammaXs, Xs, Ys, gram, metric): # TODO deprecate after testing optimizedComputeLabels
     gammaYs = range(len(gammaXs))
-    h = KNeighborsClassifier(n_neighbors=1, metric=metric, algorithm='auto', n_jobs=-1)
+    h = KNeighborsClassifier(n_neighbors=1, metric=metric, algorithm='auto', n_jobs=1)
     h.fit(gammaXs, gammaYs)
 
     groups = {i:Counter() for i in gammaYs}
@@ -51,7 +51,7 @@ def computeLabels(gammaXs, Xs, Ys, gram, metric): # TODO deprecate after testing
     return [c.most_common(1)[0][0] for c in groups.keys()]
 
 def computeAlpha(gammaXs, gammaYs, Xs, Ys, metric):
-    classifier = KNeighborsClassifier(n_neighbors=1, metric=metric, algorithm='auto', n_jobs=-1)
+    classifier = KNeighborsClassifier(n_neighbors=1, metric=metric, algorithm='auto', n_jobs=1)
     classifier.fit(gammaXs, gammaYs)
     return classifier.score(Xs, Ys)
 

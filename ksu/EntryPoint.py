@@ -2,8 +2,8 @@ import sys
 import argparse
 import logging
 
-from Utils import parseInputData
-from KSU   import KSU, METRICS
+from Utils   import parseInputData
+from ksu.KSU import  KSU, METRICS
 
 def main(argv=None):
 

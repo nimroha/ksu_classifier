@@ -56,7 +56,7 @@ class KSU(object):
         if gramPath is None:
             self.logger.info('Computing Gram matrix...')
             tStartGram = time()
-            self.gram  = pairwise_distances(self.Xs, metric=self.metric, n_jobs=-1)
+            self.gram  = pairwise_distances(self.Xs, metric=self.metric, n_jobs=1)
             self.logger.debug('Gram computation took {:.3f}s'.format(time() - tStartGram))
         else:
             self.logger.info('Loading Gram matrix from file...')
@@ -100,7 +100,7 @@ class KSU(object):
             g=bestGamma,
             q=qMin))
 
-        self.classifier = KNeighborsClassifier(n_neighbors=1, metric=self.metric, algorithm='auto', n_jobs=-1)
+        self.classifier = KNeighborsClassifier(n_neighbors=1, metric=self.metric, algorithm='auto', n_jobs=1)
         self.classifier.fit(chosenXs, chosenYs)
 
 
