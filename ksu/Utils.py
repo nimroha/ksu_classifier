@@ -39,16 +39,17 @@ def computeQ(n, m, alpha, delta):
 
     return firstTerm + secondTerm + thirdTerm
 
-def computeLabels(gammaXs, Xs, Ys, gram, metric): # TODO deprecate after testing optimizedComputeLabels
-    gammaYs = range(len(gammaXs))
+def computeLabels(gammaXs, Xs, Ys, metric): # TODO deprecate after testing optimizedComputeLabels
+    gammaN = len(gammaXs)
+    gammaYs = range(gammaN)
     h = KNeighborsClassifier(n_neighbors=1, metric=metric, algorithm='auto', n_jobs=1)
     h.fit(gammaXs, gammaYs)
+    groups = [Counter()] * gammaN
+    predictions = h.predict(Xs) # gammaY (index into gammaXs of closest point) of each x
+    for i, gY in enumerate(predictions):
+        groups[gY][Ys[i]] += 1
 
-    groups = {i:Counter() for i in gammaYs}
-    for x, y in zip(Xs, Ys):
-        groups[h.predict(x)].update(y)
-
-    return [c.most_common(1)[0][0] for c in groups.keys()]
+    return [c.most_common(1)[0][0] for c in groups]
 
 def computeAlpha(gammaXs, gammaYs, Xs, Ys, metric):
     classifier = KNeighborsClassifier(n_neighbors=1, metric=metric, algorithm='auto', n_jobs=1)

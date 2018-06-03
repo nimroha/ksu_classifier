@@ -23,27 +23,21 @@ from Utils         import computeGammaSet, \
 
 
 def constructGammaNet(Xs, gram, gamma, prune):
-    chosenXs = nn.epsilon_net_hierarchy(data_sample=Xs,
-                                        epsilon=gamma,
-                                        distance_measure=None,
-                                        gram_matrix=gram)
-
-    if prune:
-        chosenXs = nn.consistent_pruning(net=chosenXs,
-                                         distance_measure=None,
-                                         gram_matrix=gram)
-
-    return chosenXs
+    n = np.shape(Xs)[0]
+    sample = np.random.choice(n, n // 5) # take a random 20% sample
+    return Xs[sample, ...]
+    # return Xs
 
 class KSU(object):
 
     def __init__(self, Xs, Ys, metric, gramPath=None, prune=False):
-        self.classifier = None
-        self.Xs         = Xs
-        self.Ys         = Ys
-        self.prune      = prune
-        self.logger     = logging.getLogger('KSU')
-        self.metric     = metric
+        self.Xs     = Xs
+        self.Ys     = Ys
+        self.prune  = prune
+        self.logger = logging.getLogger('KSU')
+        self.metric = metric
+
+        logging.basicConfig(level=logging.DEBUG)
 
         if isinstance(metric, str) and metric not in METRICS.keys():
             raise RuntimeError(
@@ -62,12 +56,6 @@ class KSU(object):
             self.logger.info('Loading Gram matrix from file...')
             self.gram = np.load(gramPath)
 
-    def predict(self, x):
-        if self.classifier is None:
-            raise RuntimeError("Predictor not generated yet. you must run KSU.makePredictor() before predicting")
-        else:
-            return self.classifier.predict(x)
-
     def makePredictor(self, delta=0.05):
         gammaSet = computeGammaSet(self.gram)
         qMin     = float(np.inf)
@@ -78,8 +66,8 @@ class KSU(object):
             tStartGamma = time()
             gammaXs     = constructGammaNet(self.Xs, self.gram, gamma, self.prune)
             tStartLabel = time()
-            gammaYs     = computeLabels(gammaXs, self.Xs, self.Ys, self.gram, self.metric)
-            alpha       = computeAlpha(gammaXs, gammaYs, self.Xs, self.Ys)
+            gammaYs     = computeLabels(gammaXs, self.Xs, self.Ys, self.metric)
+            alpha       = computeAlpha(gammaXs, gammaYs, self.Xs, self.Ys, self.metric)
             m           = len(gammaXs)
             q           = computeQ(n, alpha, 2 * m, delta)
 
@@ -96,12 +84,17 @@ class KSU(object):
                 chosenXs  = gammaXs
                 chosenYs  = gammaYs
 
+            break #TODO delete!!!
+
         self.logger.info('Chosen best gamma: {g}, which achieved q: {q}'.format(
             g=bestGamma,
             q=qMin))
 
-        self.classifier = KNeighborsClassifier(n_neighbors=1, metric=self.metric, algorithm='auto', n_jobs=1)
-        self.classifier.fit(chosenXs, chosenYs)
+        classifier = KNeighborsClassifier(n_neighbors=1, metric=self.metric, algorithm='auto', n_jobs=1)
+        classifier.fit(chosenXs, chosenYs)
+
+        return classifier
+
 
 
 
