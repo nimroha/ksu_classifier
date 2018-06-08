@@ -22,8 +22,13 @@ from Utils         import computeGammaSet, \
                           computeQ
 
 
-def constructGammaNet(Xs, gram, gamma, prune):
-    chosenXs = nn.epsilon_net_hierarchy(data_sample=Xs,
+def constructGammaNet(Xs, Ys, gram, gamma, prune):
+    # adjust data to fit DataSet form
+    dataSetObject = nn.DataSet()
+    for i in xrange(len(Xs)):
+        dataSetObject.create_data_item(Xs[i], Ys[i])
+
+    chosenXs = nn.epsilon_net_hierarchy(data_sample=dataSetObject.data,
                                         epsilon=gamma,
                                         distance_measure=None,
                                         gram_matrix=gram)
@@ -76,7 +81,7 @@ class KSU(object):
         self.logger.debug('Choosing from {} gammas'.format(len(gammaSet)))
         for gamma in gammaSet:
             tStartGamma = time()
-            gammaXs     = constructGammaNet(self.Xs, self.gram, gamma, self.prune)
+            gammaXs     = constructGammaNet(self.Xs, self.Ys, self.gram, gamma, self.prune)
             tStartLabel = time()
             gammaYs     = computeLabels(gammaXs, self.Xs, self.Ys, self.gram, self.metric)
             alpha       = computeAlpha(gammaXs, gammaYs, self.Xs, self.Ys)
