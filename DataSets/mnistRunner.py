@@ -5,6 +5,7 @@ import numpy as np
 from time import time
 
 from ksu.KSU import KSU
+from ksu.Metrics import makeLn
 
 def main(argv=None):
 
@@ -20,7 +21,7 @@ def main(argv=None):
     testLabels = np.array(testLabels[0:test_n])
 
     start = time()
-    ksu = KSU(trainImages, trainLabels, 'l2')
+    ksu = KSU(trainImages, trainLabels, makeLn(2))
     end = time()
 
     print("Train time: {}".format(end - start))

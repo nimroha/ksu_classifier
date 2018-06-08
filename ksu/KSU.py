@@ -21,21 +21,45 @@ from Utils         import computeGammaSet, \
                           computeAlpha, \
                           computeQ
 
+class NNDataObject(object):
 
-def constructGammaNet(Xs, Ys, gram, gamma, prune):
+    def __init__(self, x, y, index):
+
+        self.x = x
+        self.y = y
+        self.index = index
+
+    def getLine(self):
+        return self.x
+
+    def getTag(self):
+        return self.y
+
+    def getIndex(self):
+        return self.index
+
+class NNDataSet(object):
+
+    def __init__(self, Xs, Ys):
+
+        data = []
+        for i in xrange(len(Xs)):
+            data.append(NNDataObject(Xs[i], Ys[i], i))
+
+        self.data = data
+
+def constructGammaNet(Xs, Ys, metric, gram, gamma, prune):
     # adjust data to fit DataSet form
-    dataSetObject = nn.DataSet()
-    for i in xrange(len(Xs)):
-        dataSetObject.create_data_item(Xs[i], Ys[i])
+    nnDataSet = NNDataSet(Xs, Ys)
 
-    chosenXs = nn.epsilon_net_hierarchy(data_sample=dataSetObject.data,
+    chosenXs = nn.epsilon_net_hierarchy(data_sample=nnDataSet.data,
                                         epsilon=gamma,
-                                        distance_measure=None,
+                                        distance_measure=metric,
                                         gram_matrix=gram)
 
     if prune:
         chosenXs = nn.consistent_pruning(net=chosenXs,
-                                         distance_measure=None,
+                                         distance_measure=metric,
                                          gram_matrix=gram)
 
     return chosenXs
@@ -76,7 +100,7 @@ class KSU(object):
         self.logger.debug('Choosing from {} gammas'.format(len(gammaSet)))
         for gamma in gammaSet:
             tStartGamma = time()
-            gammaXs     = constructGammaNet(self.Xs, self.Ys, self.gram, gamma, self.prune)
+            gammaXs     = constructGammaNet(self.Xs, self.Ys, self.metric, self.gram, gamma, self.prune)
             tStartLabel = time()
             gammaYs     = computeLabels(gammaXs, self.Xs, self.Ys, self.metric)
             alpha       = computeAlpha(gammaXs, gammaYs, self.Xs, self.Ys, self.metric)
