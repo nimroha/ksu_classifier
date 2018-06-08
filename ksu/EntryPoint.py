@@ -17,7 +17,7 @@ def main(argv=None):
                                                 'named Distance.py with a function named "dist(a, b)" that computes'
                                                 'the distance between a and b by any metric of choice',                        default=None)
     parser.add_argument('--gram',          help='Path to a precomputed gram matrix (in .npz format)',                          default=None)
-    parser.add_argument('--delta',         help='Delta parameter',                                                             default=0.1, type=float)  # TODO explain better, choose a good default
+    parser.add_argument('--delta',         help='Required confidence level',                                                   default=0.05, type=float)
     parser.add_argument('--log_level',     help='Logging level',                                                               default='INFO')
 
     args = parser.parse_args()

@@ -43,12 +43,13 @@ def constructGammaNet(Xs, Ys, gram, gamma, prune):
 class KSU(object):
 
     def __init__(self, Xs, Ys, metric, gramPath=None, prune=False):
-        self.classifier = None
-        self.Xs         = Xs
-        self.Ys         = Ys
-        self.prune      = prune
-        self.logger     = logging.getLogger('KSU')
-        self.metric     = metric
+        self.Xs     = Xs
+        self.Ys     = Ys
+        self.prune  = prune
+        self.logger = logging.getLogger('KSU')
+        self.metric = metric
+
+        logging.basicConfig(level=logging.DEBUG)
 
         if isinstance(metric, str) and metric not in METRICS.keys():
             raise RuntimeError(
@@ -67,13 +68,7 @@ class KSU(object):
             self.logger.info('Loading Gram matrix from file...')
             self.gram = np.load(gramPath)
 
-    def predict(self, x):
-        if self.classifier is None:
-            raise RuntimeError("Predictor not generated yet. you must run KSU.makePredictor() before predicting")
-        else:
-            return self.classifier.predict(x)
-
-    def makePredictor(self, delta):
+    def makePredictor(self, delta=0.05):
         gammaSet = computeGammaSet(self.gram)
         qMin     = float(np.inf)
         n        = len(self.Xs)
@@ -83,8 +78,8 @@ class KSU(object):
             tStartGamma = time()
             gammaXs     = constructGammaNet(self.Xs, self.Ys, self.gram, gamma, self.prune)
             tStartLabel = time()
-            gammaYs     = computeLabels(gammaXs, self.Xs, self.Ys, self.gram, self.metric)
-            alpha       = computeAlpha(gammaXs, gammaYs, self.Xs, self.Ys)
+            gammaYs     = computeLabels(gammaXs, self.Xs, self.Ys, self.metric)
+            alpha       = computeAlpha(gammaXs, gammaYs, self.Xs, self.Ys, self.metric)
             m           = len(gammaXs)
             q           = computeQ(n, alpha, 2 * m, delta)
 
@@ -105,8 +100,11 @@ class KSU(object):
             g=bestGamma,
             q=qMin))
 
-        self.classifier = KNeighborsClassifier(n_neighbors=1, metric=self.metric, algorithm='auto', n_jobs=1)
-        self.classifier.fit(chosenXs, chosenYs)
+        classifier = KNeighborsClassifier(n_neighbors=1, metric=self.metric, algorithm='auto', n_jobs=1)
+        classifier.fit(chosenXs, chosenYs)
+
+        return classifier
+
 
 
 

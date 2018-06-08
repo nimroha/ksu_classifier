@@ -23,13 +23,13 @@ def main(argv=None):
     ksu = KSU(trainImages, trainLabels, 'l2')
     end = time()
 
-    print("Train time: %d", end - start)
+    print("Train time: {}".format(end - start))
 
     ksuClassifier = ksu.makePredictor(0.1)
     predictedLabels = ksuClassifier.predict(testImages)
     error = np.mean(predictedLabels != testLabels)
 
-    print(error)
+    print('error:', error)
 
 if __name__ == '__main__' :
     sys.exit(main())
