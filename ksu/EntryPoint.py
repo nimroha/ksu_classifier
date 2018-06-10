@@ -1,9 +1,12 @@
 import sys
 import argparse
 import logging
+import numpy as np
+
+from time import time
 
 from Utils   import parseInputData
-from ksu.KSU import  KSU, METRICS
+from ksu.KSU import KSU, METRICS
 
 def main(argv=None):
 
@@ -11,7 +14,8 @@ def main(argv=None):
         argv = sys.argv
 
     parser = argparse.ArgumentParser(description='Generate a KSU classifier')
-    parser.add_argument('--data',          help='Path to input data file (in .npz format with 2 nodes named X and Y)',         required=True)
+    parser.add_argument('--data_in',       help='Path to input data file (in .npz format with 2 nodes named X and Y)',         required=True)
+    parser.add_argument('--data_out',      help='Path where output data will be saved',                                        required=True)
     parser.add_argument('--metric',        help='Metric to use (unless custom_metric is provided). {}'.format(METRICS.keys()), default='l2')
     parser.add_argument('--custom_metric', help='Absolute path to a directory (containing __init__.py) with a python file'
                                                 'named Distance.py with a function named "dist(a, b)" that computes'
@@ -26,7 +30,8 @@ def main(argv=None):
     logger = logging.getLogger('KSU')
     logger.addHandler(logging.StreamHandler(sys.stdout))
 
-    dataPath     = args.data
+    dataInPath   = args.data_in
+    dataOutPath  = args.data_out
     gramPath     = args.gram
     metric       = args.metric
     delta        = args.delta
@@ -53,12 +58,12 @@ def main(argv=None):
                     ms=METRICS.keys()))
 
     logger.info('Reading data...')
-    data = parseInputData(dataPath)
+    data = parseInputData(dataInPath)
 
     ksu = KSU(data['X'], data['Y'], metric, gramPath)
-    h   = ksu.makePredictor(delta)
-
-
+    ksu.compressData(delta)
+    Xs, Ys = ksu.getCompressedSet()
+    np.savez_compressed(dataOutPath, X=Xs, Y=Ys)
 
 
 if __name__ == '__main__' :

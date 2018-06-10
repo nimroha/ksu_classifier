@@ -59,6 +59,7 @@ def computeAlpha(gammaXs, gammaYs, Xs, Ys, metric):
 def computeGammaSet(gram):
     gammaSet = np.unique(gram)
     gammaSet = np.delete(gammaSet, 0)
+    #TODO consider sampling a smaller set
     return gammaSet
 
 def findIndices(array, elements):

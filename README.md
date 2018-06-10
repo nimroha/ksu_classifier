@@ -24,6 +24,10 @@ Installation
  
   <br>
  
-  `KSU` provides a method `makePredictor([delta])`
+  `KSU` provides a method `compressData([delta])`
   
-  Which returns a 1-NN Classifer (based on [sklearn's K-NN](http://scikit-learn.org/stable/modules/generated/sklearn.neighbors.KNeighborsClassifier.html)) fitted to the compressed data, where `delta` _(optional, default=5%)_ is the required confidence of said classifier.
+  Which selects the subset with the lowest estimated error with confidence `1 - delta`.
+  
+  You can then run `getClassifier()` which returns a 1-NN Classifer (based on [sklearn's K-NN](http://scikit-learn.org/stable/modules/generated/sklearn.neighbors.KNeighborsClassifier.html)) fitted to the compressed data.
+  
+  Or, run `getCompressedSet()` to get the compressed data as a tuple of numpy arrays `(compressedXs, compressedYs)`.
