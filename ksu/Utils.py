@@ -56,10 +56,15 @@ def computeAlpha(gammaXs, gammaYs, Xs, Ys, metric):
     classifier.fit(gammaXs, gammaYs)
     return classifier.score(Xs, Ys)
 
-def computeGammaSet(gram):
+def computeGammaSet(gram, dilute=False):
     gammaSet = np.unique(gram)
     gammaSet = np.delete(gammaSet, 0)
-    #TODO consider sampling a smaller set
+
+    if dilute:
+        n        = len(gammaSet)
+        stride   = int(n / log2(n))
+        gammaSet = gammaSet[::stride]
+
     return gammaSet
 
 def findIndices(array, elements):

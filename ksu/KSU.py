@@ -96,7 +96,7 @@ class KSU(object):
 
     def getCompressedSet(self):
         if self.chosenXs is None:
-            raise RuntimeError('getCompressedDet - you must run KSU.compressData first')
+            raise RuntimeError('getCompressedSet - you must run KSU.compressData first')
 
         return self.chosenXs, self.chosenYs
 

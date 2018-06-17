@@ -63,8 +63,11 @@ def main(argv=None):
     ksu = KSU(data['X'], data['Y'], metric, gramPath)
     ksu.compressData(delta)
     Xs, Ys = ksu.getCompressedSet()
+
+    logger.info('Saving compressed set to {}...'.format(dataOutPath))
     np.savez_compressed(dataOutPath, X=Xs, Y=Ys)
 
+    logger.info('Done')
 
 if __name__ == '__main__' :
     sys.exit(main())
