@@ -9,6 +9,7 @@ from sklearn.neighbors.base   import VALID_METRICS
 from sklearn.metrics.pairwise import pairwise_distances
 
 import Metrics
+from epsilon_net.EpsilonNet import greedyConstructEpsilonNetWithGram
 
 METRICS = {v:v for v in VALID_METRICS['brute'] if v != 'precomputed'}
 METRICS['EditDistance'] = Metrics.editDistance
@@ -49,18 +50,20 @@ class NNDataSet(object):
         self.data = data
 
 def constructGammaNet(Xs, Ys, metric, gram, gamma, prune):
-    # adjust data to fit DataSet form
-    nnDataSet = NNDataSet(Xs, Ys)
+    # # adjust data to fit DataSet form
+    # nnDataSet = NNDataSet(Xs, Ys)
+    #
+    # chosenXs = nn.epsilon_net_hierarchy(data_sample=nnDataSet.data,
+    #                                     epsilon=gamma,
+    #                                     distance_measure=metric,
+    #                                     gram_matrix=gram)
+    #
+    # if prune:
+    #     chosenXs = nn.consistent_pruning(net=chosenXs,
+    #                                      distance_measure=metric,
+    #                                      gram_matrix=gram)
 
-    chosenXs = nn.epsilon_net_hierarchy(data_sample=nnDataSet.data,
-                                        epsilon=gamma,
-                                        distance_measure=metric,
-                                        gram_matrix=gram)
-
-    if prune:
-        chosenXs = nn.consistent_pruning(net=chosenXs,
-                                         distance_measure=metric,
-                                         gram_matrix=gram)
+    chosenXs = greedyConstructEpsilonNetWithGram(Xs, gram, gamma)
 
     return chosenXs
 
@@ -110,28 +113,24 @@ class KSU(object):
         return h
 
     def compressData(self, delta=0.05):
-        gammaSet = computeGammaSet(self.gram)
+        gammaSet = computeGammaSet(self.gram, stride=10e3)
         qMin     = float(np.inf)
         n        = len(self.Xs)
 
         self.logger.debug('Choosing from {} gammas'.format(len(gammaSet)))
         for gamma in gammaSet:
-            tStartGamma = time()
-            gammaXs     = constructGammaNet(self.Xs, self.Ys, self.metric, self.gram, gamma, self.prune)
-            tStartLabel = time()
-            gammaYs     = computeLabels(gammaXs, self.Xs, self.Ys, self.metric)
+            tStart  = time()
+            gammaXs = constructGammaNet(self.Xs, self.Ys, self.metric, self.gram, gamma, self.prune)
+            self.logger.debug('Gamma: {g}, net construction took {t:.3f}s'.format(g=gamma, t=time() - tStart))
+            tStart  = time()
+            gammaYs = computeLabels(gammaXs, self.Xs, self.Ys, self.metric)
+            self.logger.debug('Gamma: {g}, label voting took {t:.3f}s'.format(g=gamma, t=time() - tStart))
             alpha       = computeAlpha(gammaXs, gammaYs, self.Xs, self.Ys, self.metric)
             m           = len(gammaXs)
             q           = computeQ(n, alpha, 2 * m, delta)
 
-            self.logger.debug(
-                'For gamma: {g}, net construction took {nt:.3f}s, label choosing took {lt:.3f}s, q: {q}'.format(
-                    g=gamma,
-                    q=q,
-                    nt=tStartLabel - tStartGamma,
-                    lt=time() - tStartLabel))
-
             if q < qMin:
+                self.logger.debug('Gamma: {g} achieved lowest error so far: {q}'.format(g=gamma, q=q))
                 qMin          = q
                 bestGamma     = gamma
                 self.chosenXs = gammaXs

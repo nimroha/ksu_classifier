@@ -43,7 +43,7 @@ def computeLabels(gammaXs, Xs, Ys, metric): # TODO deprecate after testing optim
     gammaN = len(gammaXs)
     gammaYs = range(gammaN)
     h = KNeighborsClassifier(n_neighbors=1, metric=metric, algorithm='auto', n_jobs=1)
-    h.fit([o.x for o in gammaXs["compressed_sample"]], gammaYs)
+    h.fit(gammaXs, gammaYs)
     groups = [Counter()] * gammaN
     predictions = h.predict(Xs) # gammaY (index into gammaXs of closest point) of each x
     for i, gY in enumerate(predictions):
@@ -56,14 +56,12 @@ def computeAlpha(gammaXs, gammaYs, Xs, Ys, metric):
     classifier.fit(gammaXs, gammaYs)
     return classifier.score(Xs, Ys)
 
-def computeGammaSet(gram, dilute=False):
+def computeGammaSet(gram, stride=None):
     gammaSet = np.unique(gram)
     gammaSet = np.delete(gammaSet, 0)
 
-    if dilute:
-        n        = len(gammaSet)
-        stride   = int(n / log2(n))
-        gammaSet = gammaSet[::stride]
+    if stride is not None:
+        gammaSet = gammaSet[::int(stride)]
 
     return gammaSet
 
