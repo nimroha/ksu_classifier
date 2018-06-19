@@ -113,7 +113,7 @@ class KSU(object):
         return h
 
     def compressData(self, delta=0.05):
-        gammaSet = computeGammaSet(self.gram, stride=10e3)
+        gammaSet = computeGammaSet(self.gram, stride=100)
         qMin     = float(np.inf)
         n        = len(self.Xs)
 
@@ -121,9 +121,12 @@ class KSU(object):
         for gamma in gammaSet:
             tStart  = time()
             gammaXs = constructGammaNet(self.Xs, self.Ys, self.metric, self.gram, gamma, self.prune)
-            self.logger.debug('Gamma: {g}, net construction took {t:.3f}s'.format(g=gamma, t=time() - tStart))
+            self.logger.debug('Gamma: {g}, net construction took {t:.3f}s, compression: {c}'.format(
+                g=gamma,
+                t=time() - tStart,
+                c=float(len(gammaXs)) / n))
             if len(gammaXs) < len(self.Ys):
-                continue # no use building a classifier that will never classifiy all classes
+                continue # no use building a classifier that will never classify some classes
 
             tStart  = time()
             gammaYs = computeLabels(gammaXs, self.Xs, self.Ys, self.metric)
@@ -139,9 +142,10 @@ class KSU(object):
                 self.chosenXs = gammaXs
                 self.chosenYs = gammaYs
 
-        self.logger.info('Chosen best gamma: {g}, which achieved q: {q}'.format(
+        self.logger.info('Chosen best gamma: {g}, which achieved q: {q}, and compression: {c}'.format(
             g=bestGamma,
-            q=qMin))
+            q=qMin,
+            c=float(len(self.chosenXs)) / n))
 
 
 

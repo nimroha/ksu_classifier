@@ -13,8 +13,9 @@ def main(argv=None):
     trainImages, trainLabels = shuffle(mnist.train_images(), mnist.train_labels())
     testImages, testLabels   = shuffle(mnist.test_images(), mnist.test_labels())
 
-    train_n = int(0.1 * len(trainLabels))
-    test_n  = int(0.1 * len(testLabels))
+    ratio   = 0.15
+    train_n = int(ratio * len(trainLabels))
+    test_n  = int(ratio * len(testLabels))
 
     trainImages = np.reshape(np.array(trainImages[0:train_n,:,:]), [train_n, -1])
     trainLabels = np.array(trainLabels[0:train_n])
