@@ -122,6 +122,9 @@ class KSU(object):
             tStart  = time()
             gammaXs = constructGammaNet(self.Xs, self.Ys, self.metric, self.gram, gamma, self.prune)
             self.logger.debug('Gamma: {g}, net construction took {t:.3f}s'.format(g=gamma, t=time() - tStart))
+            if len(gammaXs) < len(self.Ys):
+                continue # no use building a classifier that will never classifiy all classes
+
             tStart  = time()
             gammaYs = computeLabels(gammaXs, self.Xs, self.Ys, self.metric)
             self.logger.debug('Gamma: {g}, label voting took {t:.3f}s'.format(g=gamma, t=time() - tStart))

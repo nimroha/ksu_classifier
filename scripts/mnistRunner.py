@@ -1,8 +1,9 @@
 import sys
 import mnist
-from sklearn.utils import shuffle
 import numpy as np
-from time import time
+
+from sklearn.utils import shuffle
+from time          import time
 
 from ksu.KSU import KSU
 from ksu.Metrics import makeLn

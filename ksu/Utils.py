@@ -44,10 +44,10 @@ def computeLabels(gammaXs, Xs, Ys, metric): # TODO deprecate after testing optim
     gammaYs = range(gammaN)
     h = KNeighborsClassifier(n_neighbors=1, metric=metric, algorithm='auto', n_jobs=1)
     h.fit(gammaXs, gammaYs)
-    groups = [Counter()] * gammaN
-    predictions = h.predict(Xs) # gammaY (index into gammaXs of closest point) of each x
-    for i, gY in enumerate(predictions):
-        groups[gY][Ys[i]] += 1
+    groups = [Counter() for _ in range(gammaN)]
+    predictions = h.predict(Xs) # cluster id for each x (ids form gammaYs)
+    for label in gammaYs:
+        groups[label].update(Ys[np.where(predictions == label)]) #count all the labels in the cluster
 
     return [c.most_common(1)[0][0] for c in groups]
 
@@ -81,7 +81,7 @@ def optimizedComputeLabels(gammaXs, Xs, Ys, gram):
     taken            = np.full([n], False, dtype=bool)
 
     numTaken = 0
-    groups   = {i: Counter() for i in range(m)}
+    groups   = [Counter() for _ in range(m)]
     for y, xIdx, neighborIdx in zip(flatYs, flatXIdxs, flatNeighborIdxs):
         if numTaken == n:
             break
@@ -93,4 +93,5 @@ def optimizedComputeLabels(gammaXs, Xs, Ys, gram):
         taken[neighborIdx] = True
         numTaken += 1
 
-    return [c.most_common(1)[0][0] for c in groups.keys()]
+    return [c.most_common(1)[0][0] for c in groups]
+
