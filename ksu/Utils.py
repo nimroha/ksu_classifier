@@ -68,15 +68,14 @@ def computeGammaSet(gram, stride=None):
 def findIndices(array, elements):
     return filter(lambda x: x is not None, [array.index(e) if e in array else None for e in elements])
 
-def optimizedComputeLabels(gammaXs, Xs, Ys, gram):
+def optimizedComputeLabels(gammaXs, gammaIdxs, Xs, Ys, gram):
     m                = len(gammaXs)
     n                = len(Xs)
-    slice            = findIndices(Xs, gammaXs)
-    gammmaGram       = gram[:, slice]
+    gammmaGram       = gram[gammaIdxs]
     flatGram         = np.reshape(gammmaGram, [-1])
     perm             = np.argsort(flatGram)
-    flatYs           = np.array(Ys * m)[perm]
-    flatXIdxs        = np.array([j for l in [[e] * m for e in range(m)] for j in l])[perm]
+    flatYs           = np.array(Ys.tolist() * m)[perm]
+    flatXIdxs        = np.array([j for l in [[e] * n for e in range(m)] for j in l])[perm]
     flatNeighborIdxs = np.array(range(n) * m)[perm]
     taken            = np.full([n], False, dtype=bool)
 
@@ -89,7 +88,7 @@ def optimizedComputeLabels(gammaXs, Xs, Ys, gram):
         if taken[neighborIdx]:
            continue
 
-        groups[xIdx].update(y)
+        groups[xIdx][y] += 1
         taken[neighborIdx] = True
         numTaken += 1
 

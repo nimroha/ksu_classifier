@@ -19,6 +19,7 @@ sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'nn_con
 from nn_condensing import nn # this only looks like an error because the IDE doesn't understand the ugly hack above ^
 from Utils         import computeGammaSet, \
                           computeLabels, \
+                          optimizedComputeLabels, \
                           computeAlpha, \
                           computeQ
 
@@ -50,33 +51,24 @@ class NNDataSet(object):
         self.data = data
 
 def constructGammaNet(Xs, Ys, metric, gram, gamma, prune):
-    # # adjust data to fit DataSet form
-    # nnDataSet = NNDataSet(Xs, Ys)
-    #
-    # chosenXs = nn.epsilon_net_hierarchy(data_sample=nnDataSet.data,
-    #                                     epsilon=gamma,
-    #                                     distance_measure=metric,
-    #                                     gram_matrix=gram)
-    #
-    # if prune:
-    #     chosenXs = nn.consistent_pruning(net=chosenXs,
-    #                                      distance_measure=metric,
-    #                                      gram_matrix=gram)
 
-    chosenXs = greedyConstructEpsilonNetWithGram(Xs, gram, gamma)
+    chosenXs, chosen = greedyConstructEpsilonNetWithGram(Xs, gram, gamma)
+    if prune:
+        pass # TODO shoud we also implement this?
 
-    return chosenXs
+    return chosenXs, np.where(chosen)
 
 class KSU(object):
 
     def __init__(self, Xs, Ys, metric, gramPath=None, prune=False):
-        self.Xs       = Xs
-        self.Ys       = Ys
-        self.prune    = prune
-        self.logger   = logging.getLogger('KSU')
-        self.metric   = metric
-        self.chosenXs = None
-        self.chosenYs = None
+        self.Xs         = Xs
+        self.Ys         = Ys
+        self.prune      = prune
+        self.logger     = logging.getLogger('KSU')
+        self.metric     = metric
+        self.chosenXs   = None
+        self.chosenYs   = None
+        self.numClasses = len(np.unique(self.Ys))
 
         logging.basicConfig(level=logging.DEBUG)
 
@@ -119,24 +111,29 @@ class KSU(object):
 
         self.logger.debug('Choosing from {} gammas'.format(len(gammaSet)))
         for gamma in gammaSet:
-            tStart  = time()
-            gammaXs = constructGammaNet(self.Xs, self.Ys, self.metric, self.gram, gamma, self.prune)
+            tStart = time()
+            gammaXs, gammaIdxs = constructGammaNet(self.Xs, self.Ys, self.metric, self.gram, gamma, self.prune)
             self.logger.debug('Gamma: {g}, net construction took {t:.3f}s, compression: {c}'.format(
                 g=gamma,
                 t=time() - tStart,
                 c=float(len(gammaXs)) / n))
-            if len(gammaXs) < len(self.Ys):
+
+            if len(gammaXs) < self.numClasses:
                 continue # no use building a classifier that will never classify some classes
 
             tStart  = time()
             gammaYs = computeLabels(gammaXs, self.Xs, self.Ys, self.metric)
             self.logger.debug('Gamma: {g}, label voting took {t:.3f}s'.format(g=gamma, t=time() - tStart))
-            alpha       = computeAlpha(gammaXs, gammaYs, self.Xs, self.Ys, self.metric)
-            m           = len(gammaXs)
-            q           = computeQ(n, alpha, 2 * m, delta)
+
+            tStart = time()
+            alpha  = computeAlpha(gammaXs, gammaYs, self.Xs, self.Ys, self.metric)
+            self.logger.debug('Gamma: {g}, error approximation took {t:.3f}s'.format(g=gamma, t=time() - tStart))
+
+            m = len(gammaXs)
+            q = computeQ(n, alpha, 2 * m, delta)
 
             if q < qMin:
-                self.logger.debug('Gamma: {g} achieved lowest error so far: {q}'.format(g=gamma, q=q))
+                self.logger.debug('Gamma: {g} achieved lowest q so far: {q}'.format(g=gamma, q=q))
                 qMin          = q
                 bestGamma     = gamma
                 self.chosenXs = gammaXs

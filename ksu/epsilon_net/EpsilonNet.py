@@ -5,18 +5,27 @@ variable names sadly avoid normal convention to correspond to the paper notation
 """
 import numpy as np
 from math import log, ceil
+from tqdm import tqdm
 
 
 def greedyConstructEpsilonNetWithGram(points, gram, epsilon):
-    idx     = np.random.randint(0, len(points))
-    net     = np.array(points[idx])
-    netGram = np.array(np.expand_dims(gram[idx], axis=0))
-    for i, p in enumerate(points): #iterate rows
-        if np.min(netGram[:,i]) >= epsilon:
-            net = np.vstack((net, p))
-            netGram = np.vstack((netGram, gram[i]))
+    idx = np.random.randint(0, len(points))
 
-    return net
+    net     = np.zeros_like(points)
+    netGram = np.full_like(gram, np.inf)
+    taken   = np.full(len(points), False)
+
+    netGram[idx] = gram[idx]
+    net[idx]     = points[idx]
+    taken[idx]   = True
+
+    for i, p in tqdm(enumerate(points)): #iterate rows
+        if np.min(netGram[:,i]) >= epsilon:
+            net[i]     = points[i]
+            netGram[i] = gram[i]
+            taken[i]   = True
+
+    return net[taken], taken
 
 def collectPotentialNeighbors(point, i, N, P, C):
     return {C[r, i] for p in P[point, i] for r in N[p, i]}
