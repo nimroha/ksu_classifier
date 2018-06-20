@@ -5,7 +5,6 @@ variable names sadly avoid normal convention to correspond to the paper notation
 """
 import numpy as np
 from math import log, ceil
-from tqdm import tqdm
 
 
 def greedyConstructEpsilonNetWithGram(points, gram, epsilon):
@@ -19,7 +18,7 @@ def greedyConstructEpsilonNetWithGram(points, gram, epsilon):
     net[idx]     = points[idx]
     taken[idx]   = True
 
-    for i, p in tqdm(enumerate(points)): #iterate rows
+    for i, p in enumerate(points): #iterate rows
         if np.min(netGram[:,i]) >= epsilon:
             net[i]     = points[i]
             netGram[i] = gram[i]

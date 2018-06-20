@@ -23,7 +23,7 @@ def main(argv=None):
     testLabels  = np.array(testLabels[0:test_n])
 
     startAll = start = time()
-    ksu = KSU(trainImages, trainLabels, 'l2')
+    ksu = KSU(trainImages, trainLabels, 'l2', logLevel='DEBUG')
     print("Init time: {:.3f}".format(time() - start))
 
     start = time()

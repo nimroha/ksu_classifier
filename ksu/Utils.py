@@ -1,9 +1,29 @@
 import numpy as np
 import time
+import logging
 
 from sklearn.neighbors import KNeighborsClassifier
 from collections       import Counter
 from math              import sqrt, log
+from tqdm              import tqdm
+
+class TqdmHandler(logging.Handler):
+    def __init__ (self, level=logging.NOTSET):
+        super(self.__class__, self).__init__(level)
+
+    def emit(self, record):
+        try:
+            msg = self.format(record)
+            tqdm.write(msg)
+        except KeyboardInterrupt:
+            pass
+        except:
+            self.handleError(record)
+
+class TqdmStream(object):
+    @classmethod
+    def write(_, msg):
+        tqdm.write(msg, end='')
 
 def getDateTime():
     return time.strftime('%d.%m.%y %H:%M:%S')

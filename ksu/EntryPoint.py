@@ -60,11 +60,12 @@ def main(argv=None):
     logger.info('Reading data...')
     data = parseInputData(dataInPath)
 
-    ksu = KSU(data['X'], data['Y'], metric, gramPath)
+    ksu = KSU(data['X'], data['Y'], metric, gramPath, logLevel=logging.INFO)
     ksu.compressData(delta)
     Xs, Ys = ksu.getCompressedSet()
+    compression = ksu.getCompression()
 
-    logger.info('Saving compressed set to {}...'.format(dataOutPath))
+    logger.info('Achieved {} compression, saving compressed set to {}...'.format(compression, dataOutPath))
     np.savez_compressed(dataOutPath, X=Xs, Y=Ys)
 
     logger.info('Done')

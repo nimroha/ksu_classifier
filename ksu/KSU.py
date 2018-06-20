@@ -4,6 +4,9 @@ import logging
 import numpy as np
 
 from time                     import time
+
+from requests_toolbelt.downloadutils import stream
+from tqdm                     import tqdm
 from sklearn.neighbors        import KNeighborsClassifier
 from sklearn.neighbors.base   import VALID_METRICS
 from sklearn.metrics.pairwise import pairwise_distances
@@ -21,7 +24,8 @@ from Utils         import computeGammaSet, \
                           computeLabels, \
                           optimizedComputeLabels, \
                           computeAlpha, \
-                          computeQ
+                          computeQ, \
+                          TqdmHandler, TqdmStream
 
 class NNDataObject(object):
 
@@ -60,17 +64,18 @@ def constructGammaNet(Xs, Ys, metric, gram, gamma, prune):
 
 class KSU(object):
 
-    def __init__(self, Xs, Ys, metric, gramPath=None, prune=False):
-        self.Xs         = Xs
-        self.Ys         = Ys
-        self.prune      = prune
-        self.logger     = logging.getLogger('KSU')
-        self.metric     = metric
-        self.chosenXs   = None
-        self.chosenYs   = None
-        self.numClasses = len(np.unique(self.Ys))
+    def __init__(self, Xs, Ys, metric, gramPath=None, prune=False, logLevel=logging.CRITICAL):
+        self.Xs          = Xs
+        self.Ys          = Ys
+        self.prune       = prune
+        self.logger      = logging.getLogger('KSU')
+        self.metric      = metric
+        self.chosenXs    = None
+        self.chosenYs    = None
+        self.compression = None
+        self.numClasses  = len(np.unique(self.Ys))
 
-        logging.basicConfig(level=logging.DEBUG)
+        logging.basicConfig(level=logLevel)
 
         if isinstance(metric, str) and metric not in METRICS.keys():
             raise RuntimeError(
@@ -95,6 +100,12 @@ class KSU(object):
 
         return self.chosenXs, self.chosenYs
 
+    def getCompression(self):
+        if self.compression is None:
+            raise RuntimeError('getCompression - you must run KSU.compressData first')
+
+        return self.compression
+
     def getClassifier(self):
         if self.chosenXs is None:
             raise RuntimeError('getClassifier - you must run KSU.compressData first')
@@ -110,13 +121,17 @@ class KSU(object):
         n        = len(self.Xs)
 
         self.logger.debug('Choosing from {} gammas'.format(len(gammaSet)))
-        for gamma in gammaSet:
+        for gamma in tqdm(gammaSet):
             tStart = time()
             gammaXs, gammaIdxs = constructGammaNet(self.Xs, self.Ys, self.metric, self.gram, gamma, self.prune)
+            compression = float(len(gammaXs)) / n
             self.logger.debug('Gamma: {g}, net construction took {t:.3f}s, compression: {c}'.format(
                 g=gamma,
                 t=time() - tStart,
-                c=float(len(gammaXs)) / n))
+                c=compression))
+
+            if compression > 0.5:
+                continue # hueristic
 
             if len(gammaXs) < self.numClasses:
                 continue # no use building a classifier that will never classify some classes
@@ -124,6 +139,9 @@ class KSU(object):
             tStart  = time()
             gammaYs = computeLabels(gammaXs, self.Xs, self.Ys, self.metric)
             self.logger.debug('Gamma: {g}, label voting took {t:.3f}s'.format(g=gamma, t=time() - tStart))
+            # tStart  = time()
+            # gammaYs = optimizedComputeLabels(gammaXs, gammaIdxs, self.Xs, self.Ys, self.gram)
+            # self.logger.debug('Gamma: {g}, label voting took {t:.3f}s'.format(g=gamma, t=time() - tStart))
 
             tStart = time()
             alpha  = computeAlpha(gammaXs, gammaYs, self.Xs, self.Ys, self.metric)
@@ -134,15 +152,16 @@ class KSU(object):
 
             if q < qMin:
                 self.logger.debug('Gamma: {g} achieved lowest q so far: {q}'.format(g=gamma, q=q))
-                qMin          = q
-                bestGamma     = gamma
-                self.chosenXs = gammaXs
-                self.chosenYs = gammaYs
+                qMin             = q
+                bestGamma        = gamma
+                self.chosenXs    = gammaXs
+                self.chosenYs    = gammaYs
+                self.compression = compression
 
         self.logger.info('Chosen best gamma: {g}, which achieved q: {q}, and compression: {c}'.format(
             g=bestGamma,
             q=qMin,
-            c=float(len(self.chosenXs)) / n))
+            c=self.compression))
 
 
 

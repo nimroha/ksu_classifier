@@ -12,7 +12,7 @@ Installation
     
  Usage
  -----
- This package provides a class `KSU(Xs, Ys, metric, [gramPath, prune])`
+ This package provides a class `KSU(Xs, Ys, metric, [gramPath, prune, logLevel])`
  
  `Xs` and `Ys` are the data points and their respective labels as [numpy  arrays](https://docs.scipy.org/doc/numpy/reference/generated/numpy.array.html) 
  
@@ -21,6 +21,8 @@ Installation
  `gramPath` _(optional, default=None)_ a path to a precomputed [gramian matrix](http://mathworld.wolfram.com/GramMatrix.html)
  
  `prune` _(optional, default=False)_ a boolean indicating whether to prune the compressed set or not (Algorithm 2 from [Near-optimal sample compression for nearest neighbors](https://arxiv.org/abs/1404.3368))
+
+ `logLevel _(optional, default='CRITICAL')_ a string indicating the logging level (set to 'INFO' or 'DEBUG' to get more information)
  
   <br>
  
@@ -31,3 +33,7 @@ Installation
   You can then run `getClassifier()` which returns a 1-NN Classifer (based on [sklearn's K-NN](http://scikit-learn.org/stable/modules/generated/sklearn.neighbors.KNeighborsClassifier.html)) fitted to the compressed data.
   
   Or, run `getCompressedSet()` to get the compressed data as a tuple of numpy arrays `(compressedXs, compressedYs)`.
+
+  <br>
+
+  See `scripts/` for example usage
