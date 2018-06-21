@@ -12,17 +12,19 @@ Installation
     
  Usage
  -----
- This package provides a class `KSU(Xs, Ys, metric, [gramPath, prune, logLevel])`
+ This package provides a class `KSU(Xs, Ys, metric, [gram, prune, logLevel, n_jobs])`
  
  `Xs` and `Ys` are the data points and their respective labels as [numpy  arrays](https://docs.scipy.org/doc/numpy/reference/generated/numpy.array.html) 
  
  `metric` is either a callable to compute the metric or a string that names one of our provided metrics (print `ksu.KSU.METRICS.keys()` for the full list) 
  
- `gramPath` _(optional, default=None)_ a path to a precomputed [gramian matrix](http://mathworld.wolfram.com/GramMatrix.html)
+ `gram` _(optional, default=None)_ a precomputed [gramian matrix](http://mathworld.wolfram.com/GramMatrix.html), will be calculated if not provided.
  
  `prune` _(optional, default=False)_ a boolean indicating whether to prune the compressed set or not (Algorithm 2 from [Near-optimal sample compression for nearest neighbors](https://arxiv.org/abs/1404.3368))
 
  `logLevel _(optional, default='CRITICAL')_ a string indicating the logging level (set to 'INFO' or 'DEBUG' to get more information)
+
+ `n_jobs` _(optional, default=1)_ an integer defining how many cpus to use, pass -1 to use all. For n_jobs below -1, (n_cpus + 1 + n_jobs) are used. Thus for n_jobs = -2, all CPUs but one are used.
  
   <br>
  

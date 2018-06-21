@@ -59,22 +59,33 @@ def computeQ(n, m, alpha, delta):
 
     return firstTerm + secondTerm + thirdTerm
 
-def computeLabels(gammaXs, Xs, Ys, metric): # TODO deprecate after testing optimizedComputeLabels
-    gammaN = len(gammaXs)
+def computeLabels(gammaXs, Xs, Ys, metric, n_jobs): # TODO deprecate after testing optimizedComputeLabels
+    gammaN  = len(gammaXs)
     gammaYs = range(gammaN)
-    h = KNeighborsClassifier(n_neighbors=1, metric=metric, algorithm='auto', n_jobs=1)
+    h = KNeighborsClassifier(n_neighbors=1, metric=metric, algorithm='auto', n_jobs=n_jobs)
     h.fit(gammaXs, gammaYs)
     groups = [Counter() for _ in range(gammaN)]
     predictions = h.predict(Xs) # cluster id for each x (ids form gammaYs)
     for label in gammaYs:
-        groups[label].update(Ys[np.where(predictions == label)]) #count all the labels in the cluster
+        groups[label].update(Ys[np.where(predictions == label)]) # count all the labels in the cluster
 
     return [c.most_common(1)[0][0] for c in groups]
 
 def computeAlpha(gammaXs, gammaYs, Xs, Ys, metric):
-    classifier = KNeighborsClassifier(n_neighbors=1, metric=metric, algorithm='auto', n_jobs=1)
+    classifier = KNeighborsClassifier(n_neighbors=1, metric=metric, algorithm='auto', n_jobs=-1)
     classifier.fit(gammaXs, gammaYs)
     return classifier.score(Xs, Ys)
+
+def optimizedComputeAlpha(gammaYs, Ys, gammaGram):
+    n       = len(Ys)
+    missed  = 0
+    nearest = np.argsort(gammaGram, axis=0)[0] # top row of the argsorted gram matrix are the nearest
+                                               # neighbors' indices in the compressed set
+
+    for i in range(n):
+        missed += int(Ys[i] != gammaYs[nearest[i]]) #TODO vectorize: np.mean(np.where(Ys != gammaYs[nearest])
+
+    return float(missed) / n
 
 def computeGammaSet(gram, stride=None):
     gammaSet = np.unique(gram)
@@ -84,9 +95,6 @@ def computeGammaSet(gram, stride=None):
         gammaSet = gammaSet[::int(stride)]
 
     return gammaSet
-
-def findIndices(array, elements):
-    return filter(lambda x: x is not None, [array.index(e) if e in array else None for e in elements])
 
 def optimizedComputeLabels(gammaXs, gammaIdxs, Xs, Ys, gram):
     m                = len(gammaXs)

@@ -46,9 +46,7 @@ def buildLevel(p, i, radius, gram, S, N, P, C):
             N[r, i - 1].add(p)
 
 
-
-
-def hieracConstructEpsilonNet(points, gram, epsilon):
+def hieracConstructEpsilonNet(points, gram, epsilon):#WIP
     n = len(points)
     levels = range(1, int(ceil(log(epsilon, 2))), -1)
 

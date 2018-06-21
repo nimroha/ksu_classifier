@@ -60,7 +60,11 @@ def main(argv=None):
     logger.info('Reading data...')
     data = parseInputData(dataInPath)
 
-    ksu = KSU(data['X'], data['Y'], metric, gramPath, logLevel=logging.INFO)
+    if gramPath is not None:
+        logger.info('Loading gram...')
+        gram = np.load(gramPath)
+
+    ksu = KSU(data['X'], data['Y'], metric, gram, logLevel=logging.INFO)
     ksu.compressData(delta)
     Xs, Ys = ksu.getCompressedSet()
     compression = ksu.getCompression()

@@ -10,6 +10,7 @@ from tqdm                     import tqdm
 from sklearn.neighbors        import KNeighborsClassifier
 from sklearn.neighbors.base   import VALID_METRICS
 from sklearn.metrics.pairwise import pairwise_distances
+from collections import Counter
 
 import Metrics
 from epsilon_net.EpsilonNet import greedyConstructEpsilonNetWithGram
@@ -18,41 +19,41 @@ METRICS = {v:v for v in VALID_METRICS['brute'] if v != 'precomputed'}
 METRICS['EditDistance'] = Metrics.editDistance
 METRICS['EarthMover']   = Metrics.earthMoverDistance
 
-sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'nn_condensing', 'Python Implementation'))
-from nn_condensing import nn # this only looks like an error because the IDE doesn't understand the ugly hack above ^
+# sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'nn_condensing', 'Python Implementation'))
+# from nn_condensing import nn # this only looks like an error because the IDE doesn't understand the ugly hack above ^
 from Utils         import computeGammaSet, \
                           computeLabels, \
                           optimizedComputeLabels, \
-                          computeAlpha, \
+                          optimizedComputeAlpha, \
                           computeQ, \
                           TqdmHandler, TqdmStream
 
-class NNDataObject(object):
-
-    def __init__(self, x, y, index):
-
-        self.x = x
-        self.y = y
-        self.index = index
-
-    def getLine(self):
-        return self.x
-
-    def getTag(self):
-        return self.y
-
-    def getIndex(self):
-        return self.index
-
-class NNDataSet(object):
-
-    def __init__(self, Xs, Ys):
-
-        data = []
-        for i in xrange(len(Xs)):
-            data.append(NNDataObject(Xs[i], Ys[i], i))
-
-        self.data = data
+# class NNDataObject(object):
+#
+#     def __init__(self, x, y, index):
+#
+#         self.x = x
+#         self.y = y
+#         self.index = index
+#
+#     def getLine(self):
+#         return self.x
+#
+#     def getTag(self):
+#         return self.y
+#
+#     def getIndex(self):
+#         return self.index
+#
+# class NNDataSet(object):
+#
+#     def __init__(self, Xs, Ys):
+#
+#         data = []
+#         for i in xrange(len(Xs)):
+#             data.append(NNDataObject(Xs[i], Ys[i], i))
+#
+#         self.data = data
 
 def constructGammaNet(Xs, Ys, metric, gram, gamma, prune):
 
@@ -64,12 +65,13 @@ def constructGammaNet(Xs, Ys, metric, gram, gamma, prune):
 
 class KSU(object):
 
-    def __init__(self, Xs, Ys, metric, gramPath=None, prune=False, logLevel=logging.CRITICAL):
+    def __init__(self, Xs, Ys, metric, gram=None, prune=False, logLevel=logging.CRITICAL, n_jobs=1):
         self.Xs          = Xs
         self.Ys          = Ys
         self.prune       = prune
         self.logger      = logging.getLogger('KSU')
         self.metric      = metric
+        self.n_jobs      = n_jobs
         self.chosenXs    = None
         self.chosenYs    = None
         self.compression = None
@@ -85,14 +87,13 @@ class KSU(object):
                     m=metric,
                     ms=METRICS.keys()))
 
-        if gramPath is None:
+        if gram is None:
             self.logger.info('Computing Gram matrix...')
             tStartGram = time()
-            self.gram  = pairwise_distances(self.Xs, metric=self.metric, n_jobs=1)
+            self.gram  = pairwise_distances(self.Xs, metric=self.metric)
             self.logger.debug('Gram computation took {:.3f}s'.format(time() - tStartGram))
         else:
-            self.logger.info('Loading Gram matrix from file...')
-            self.gram = np.load(gramPath)
+            self.gram = gram
 
     def getCompressedSet(self):
         if self.chosenXs is None:
@@ -110,15 +111,15 @@ class KSU(object):
         if self.chosenXs is None:
             raise RuntimeError('getClassifier - you must run KSU.compressData first')
 
-        h = KNeighborsClassifier(n_neighbors=1, metric=self.metric, algorithm='auto', n_jobs=1)
+        h = KNeighborsClassifier(n_neighbors=1, metric=self.metric, algorithm='auto', n_jobs=self.n_jobs)
         h.fit(self.chosenXs, self.chosenYs)
 
         return h
 
     def compressData(self, delta=0.05):
-        gammaSet = computeGammaSet(self.gram, stride=100)
-        qMin     = float(np.inf)
-        n        = len(self.Xs)
+        gammaSet    = computeGammaSet(self.gram, stride=100)
+        qMin        = float(np.inf)
+        n           = len(self.Xs)
 
         self.logger.debug('Choosing from {} gammas'.format(len(gammaSet)))
         for gamma in tqdm(gammaSet):
@@ -130,21 +131,27 @@ class KSU(object):
                 t=time() - tStart,
                 c=compression))
 
-            if compression > 0.5:
-                continue # hueristic
+            if compression > 0.1:
+                continue # hueristic: don't bother compressing by less than an order of magnitude
 
             if len(gammaXs) < self.numClasses:
-                continue # no use building a classifier that will never classify some classes
+                self.logger.debug(
+                    'Gamma: {g}, compressed set smaller than number of classes ({cc} vs {c})'
+                    'no use building a classifier that will never classify some classes'.format(
+                        g=gamma,
+                        cc=len(gammaXs),
+                        c=self.numClasses))
+                continue
 
             tStart  = time()
-            gammaYs = computeLabels(gammaXs, self.Xs, self.Ys, self.metric)
+            gammaYs = computeLabels(gammaXs, self.Xs, self.Ys, self.metric, self.n_jobs)
             self.logger.debug('Gamma: {g}, label voting took {t:.3f}s'.format(g=gamma, t=time() - tStart))
             # tStart  = time()
             # gammaYs = optimizedComputeLabels(gammaXs, gammaIdxs, self.Xs, self.Ys, self.gram)
             # self.logger.debug('Gamma: {g}, label voting took {t:.3f}s'.format(g=gamma, t=time() - tStart))
 
             tStart = time()
-            alpha  = computeAlpha(gammaXs, gammaYs, self.Xs, self.Ys, self.metric)
+            alpha  = optimizedComputeAlpha(gammaYs, self.Ys, self.gram[gammaIdxs])
             self.logger.debug('Gamma: {g}, error approximation took {t:.3f}s'.format(g=gamma, t=time() - tStart))
 
             m = len(gammaXs)
@@ -162,6 +169,7 @@ class KSU(object):
             g=bestGamma,
             q=qMin,
             c=self.compression))
+
 
 
 
