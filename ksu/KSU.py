@@ -116,7 +116,7 @@ class KSU(object):
 
         return h
 
-    def compressData(self, delta=0.05):
+    def compressData(self, delta=0.1):
         gammaSet    = computeGammaSet(self.gram, stride=100)
         qMin        = float(np.inf)
         n           = len(self.Xs)
@@ -134,6 +134,9 @@ class KSU(object):
             if compression > 0.1:
                 continue # hueristic: don't bother compressing by less than an order of magnitude
 
+            if compression < 0.01:
+                break
+
             if len(gammaXs) < self.numClasses:
                 self.logger.debug(
                     'Gamma: {g}, compressed set smaller than number of classes ({cc} vs {c})'
@@ -141,7 +144,7 @@ class KSU(object):
                         g=gamma,
                         cc=len(gammaXs),
                         c=self.numClasses))
-                continue
+                break
 
             tStart  = time()
             gammaYs = computeLabels(gammaXs, self.Xs, self.Ys, self.metric, self.n_jobs)
@@ -151,8 +154,10 @@ class KSU(object):
             # self.logger.debug('Gamma: {g}, label voting took {t:.3f}s'.format(g=gamma, t=time() - tStart))
 
             tStart = time()
-            alpha  = optimizedComputeAlpha(gammaYs, self.Ys, self.gram[gammaIdxs])
-            self.logger.debug('Gamma: {g}, error approximation took {t:.3f}s'.format(g=gamma, t=time() - tStart))
+            alpha = optimizedComputeAlpha(gammaYs, self.Ys, self.gram[gammaIdxs])
+            self.logger.debug('Gamma: {g}, error approximation took {t:.3f}s, error: {a}'.format(g=gamma,
+                                                                                                 t=time() - tStart,
+                                                                                                 a=alpha))
 
             m = len(gammaXs)
             q = computeQ(n, alpha, 2 * m, delta)
