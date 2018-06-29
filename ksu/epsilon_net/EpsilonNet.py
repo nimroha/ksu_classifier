@@ -8,7 +8,7 @@ from math import log, ceil
 
 
 def greedyConstructEpsilonNetWithGram(points, gram, epsilon):
-    idx = np.random.randint(0, len(points))
+    idx = np.random.randint(0, len(points) - 1)
 
     net     = np.zeros_like(points)
     netGram = np.full_like(gram, np.inf)
@@ -26,18 +26,16 @@ def greedyConstructEpsilonNetWithGram(points, gram, epsilon):
 
     return net[taken], taken
 
-def collectPotentialNeighbors(point, i, N, P, C):
-    return {C[r, i] for p in P[point, i] for r in N[p, i]}
-
 def buildLevel(p, i, radius, gram, S, N, P, C):
-    T = collectPotentialNeighbors(p, i, N, P, C)
+    T = {C[r, i] for x in P[p, i] for r in N[x, i]}
 
     for r in T:
         if gram[r, p] < radius:
-            P[p, i - 1] = set(r)
+            P[p, i - 1] = set(r) #TODO take only one point or all points?
             return
 
     S[i - 1].add(p)
+    N[(p, i - 1)].add(p)
     [C[r, i].add(p) for r in P[p, i]]
 
     for r in T:
@@ -47,24 +45,26 @@ def buildLevel(p, i, radius, gram, S, N, P, C):
 
 
 def hieracConstructEpsilonNet(points, gram, epsilon):#WIP
+    lowestLvl = int(ceil(log(epsilon, 2)))
     n = len(points)
-    levels = range(1, int(ceil(log(epsilon, 2))), -1)
+    levels = range(1, lowestLvl, -1)
 
     #arbitrary starting point
     startIdx = np.random.randint(0, n)
 
     #init S - nets
     S = {i:set() for i in levels}
-    S[1].add(startIdx)
+    S[levels[0]].add(startIdx)
 
     #init P - parents
-    P = {(i, 1): set(startIdx) for i in range(n)}
+    P = {(i, levels[0]): set(startIdx) for i in range(n)}
 
     #init N - neighbors
-    N = {(startIdx, 1): set(startIdx)}
+    N = {(startIdx, levels[0]): set(startIdx)}
 
-    #init C - covered #TODO is this init correct? should it be empty?
-    C = {(startIdx, 1): set(np.unique(np.argwhere(gram[startIdx] < epsilon)).tolist())}
+    #init C - covered #TODO is this init correct? should it be empty? in evgeni's code it's empty
+    # C = {(startIdx, 1): set(np.unique(np.argwhere(gram[startIdx] < epsilon)).tolist())}
+    C = {i:set() for i in range(n)}
 
     for i in levels:
         radius = pow(2, i - 1)
@@ -72,3 +72,24 @@ def hieracConstructEpsilonNet(points, gram, epsilon):#WIP
             buildLevel(p, i, radius, gram, S, N, P, C)
         for p in set(range(n)) - S[i]:
             buildLevel(p, i, radius, gram, S, N, P, C)
+
+    # gauranteed to by an e-net of at least epsilon
+    return S[lowestLvl]
+
+from sklearn.metrics.pairwise import pairwise_distances
+# xs = np.array([[0, 0],
+#                [0, 1],
+#                [1, 0],
+#                [1, 1],
+#                [2, 1],
+#                [3, 1],
+#                [2, 2],
+#                [3, 2]])
+ys = np.array([2, 0, 1, 2, 0, 1, 0, 2])
+x0   = np.array([0, 0])
+x1   = np.array([0, 1])
+x2   = np.array([1, 0])
+x3   = np.array([1, 1])
+xs   = np.vstack((x0, x1, x2, x3))
+gram = pairwise_distances(xs, metric='l2')
+print(xs, gram, 1.5)
