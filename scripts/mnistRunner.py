@@ -13,7 +13,7 @@ def main(argv=None):
     trainImages, trainLabels = shuffle(mnist.train_images(), mnist.train_labels())
     testImages, testLabels   = shuffle(mnist.test_images(), mnist.test_labels())
 
-    ratio   = 0.05
+    ratio   = 0.1
     train_n = int(ratio * len(trainLabels))
     test_n  = int(ratio * len(testLabels))
 

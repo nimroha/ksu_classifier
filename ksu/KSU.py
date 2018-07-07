@@ -134,7 +134,7 @@ class KSU(object):
             if compression > 0.1:
                 continue # hueristic: don't bother compressing by less than an order of magnitude
 
-            if compression < 0.01:
+            if compression < 0.08:
                 break
 
             if len(gammaXs) < self.numClasses:
