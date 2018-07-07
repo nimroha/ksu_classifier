@@ -81,6 +81,7 @@ def optimizedComputeAlpha(gammaYs, Ys, gammaGram):
     missed  = 0
     nearest = np.argsort(gammaGram, axis=0)[0] # top row of the argsorted gram matrix are the nearest
                                                # neighbors' indices in the compressed set
+                                               # TODO change to np.min(gammaGram, axis=0)
 
     for i in range(n):
         missed += int(Ys[i] != gammaYs[nearest[i]]) #TODO vectorize: np.mean(np.where(Ys != gammaYs[nearest])

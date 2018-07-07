@@ -13,7 +13,7 @@ from sklearn.metrics.pairwise import pairwise_distances
 from collections import Counter
 
 import Metrics
-from epsilon_net.EpsilonNet import greedyConstructEpsilonNetWithGram
+from epsilon_net.EpsilonNet import hieracConstructEpsilonNet
 
 METRICS = {v:v for v in VALID_METRICS['brute'] if v != 'precomputed'}
 METRICS['EditDistance'] = Metrics.editDistance
@@ -28,36 +28,9 @@ from Utils         import computeGammaSet, \
                           computeQ, \
                           TqdmHandler, TqdmStream
 
-# class NNDataObject(object):
-#
-#     def __init__(self, x, y, index):
-#
-#         self.x = x
-#         self.y = y
-#         self.index = index
-#
-#     def getLine(self):
-#         return self.x
-#
-#     def getTag(self):
-#         return self.y
-#
-#     def getIndex(self):
-#         return self.index
-#
-# class NNDataSet(object):
-#
-#     def __init__(self, Xs, Ys):
-#
-#         data = []
-#         for i in xrange(len(Xs)):
-#             data.append(NNDataObject(Xs[i], Ys[i], i))
-#
-#         self.data = data
+def constructGammaNet(Xs, gram, gamma, prune):
 
-def constructGammaNet(Xs, Ys, metric, gram, gamma, prune):
-
-    chosenXs, chosen = greedyConstructEpsilonNetWithGram(Xs, gram, gamma)
+    chosenXs, chosen = hieracConstructEpsilonNet(Xs, gram, gamma)
     if prune:
         pass # TODO shoud we also implement this?
 
@@ -95,6 +68,8 @@ class KSU(object):
         else:
             self.gram = gram
 
+        self.gram = self.gram / np.max(self.gram)
+
     def getCompressedSet(self):
         if self.chosenXs is None:
             raise RuntimeError('getCompressedSet - you must run KSU.compressData first')
@@ -124,7 +99,7 @@ class KSU(object):
         self.logger.debug('Choosing from {} gammas'.format(len(gammaSet)))
         for gamma in tqdm(gammaSet):
             tStart = time()
-            gammaXs, gammaIdxs = constructGammaNet(self.Xs, self.Ys, self.metric, self.gram, gamma, self.prune)
+            gammaXs, gammaIdxs = constructGammaNet(self.Xs, self.gram, gamma, self.prune)
             compression = float(len(gammaXs)) / n
             self.logger.debug('Gamma: {g}, net construction took {t:.3f}s, compression: {c}'.format(
                 g=gamma,
