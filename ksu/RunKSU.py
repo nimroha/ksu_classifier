@@ -3,8 +3,6 @@ import argparse
 import logging
 import numpy as np
 
-from time import time
-
 from Utils   import parseInputData
 from ksu.KSU import KSU, METRICS
 
@@ -13,14 +11,14 @@ def main(argv=None):
     if argv is None:
         argv = sys.argv
 
-    parser = argparse.ArgumentParser(description='Generate a KSU classifier')
+    parser = argparse.ArgumentParser(description='Generate a 1 nearest neighbors classifier fitted to a KSU compressed dataset')
     parser.add_argument('--data_in',       help='Path to input data file (in .npz format with 2 nodes named X and Y)',         required=True)
     parser.add_argument('--data_out',      help='Path where output data will be saved',                                        required=True)
     parser.add_argument('--metric',        help='Metric to use (unless custom_metric is provided). {}'.format(METRICS.keys()), default='l2')
     parser.add_argument('--custom_metric', help='Absolute path to a directory (containing __init__.py) with a python file'
                                                 'named Distance.py with a function named "dist(a, b)" that computes'
                                                 'the distance between a and b by any metric of choice',                        default=None)
-    parser.add_argument('--gram',          help='Path to a precomputed gram matrix (in .npz format)',                          default=None)
+    parser.add_argument('--gram',          help='Path to a precomputed gram matrix (in .npz format with a node named gram)',   default=None)
     parser.add_argument('--delta',         help='Required confidence level',                                                   default=0.05, type=float)
     parser.add_argument('--log_level',     help='Logging level',                                                               default='INFO')
 
@@ -60,9 +58,10 @@ def main(argv=None):
     logger.info('Reading data...')
     data = parseInputData(dataInPath)
 
+    gram = None
     if gramPath is not None:
         logger.info('Loading gram...')
-        gram = np.load(gramPath)
+        gram = np.load(gramPath)['gram']
 
     ksu = KSU(data['X'], data['Y'], metric, gram, logLevel=logging.INFO)
     ksu.compressData(delta)

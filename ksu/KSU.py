@@ -10,7 +10,6 @@ from tqdm                     import tqdm
 from sklearn.neighbors        import KNeighborsClassifier
 from sklearn.neighbors.base   import VALID_METRICS
 from sklearn.metrics.pairwise import pairwise_distances
-from collections import Counter
 
 import Metrics
 from epsilon_net.EpsilonNet import hieracConstructEpsilonNet

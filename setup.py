@@ -84,21 +84,6 @@ class UploadCommand(Command):
 
         sys.exit()
 
-def cloneSubmodules(): #TODO only works in project root dir (TODO doesn't seem to clone)
-    os.system('git submodule init')
-    os.system('git submodule update --recursive')  # get the epsilon-net creation module from github
-
-class CustomInstallCommand(install):
-    """Add custom functionality to install command."""
-
-    @staticmethod
-    def _called_from_setup(run_frame): # hack to force backward-compatible install
-        return True
-
-    def run(self):
-        self.execute(cloneSubmodules, (), msg='Fetching 1-nn-condensing submodule')
-        install.run(self) # run regular install
-
 # Where the magic happens:
 setup(
     name=NAME,
@@ -115,9 +100,9 @@ setup(
     # py_modules=['ksu'],
 
     entry_points={
-        'console_scripts': ['ksu=ksu.EntryPoint:main'],
+        'console_scripts': ['ksu=ksu.RunKSU:main',
+                            'e-net=ksu.RunENet:main'],
     },
-    # scripts=['ksu/EntryPoint.py'],
 
     install_requires=REQUIRED,
     include_package_data=True,
@@ -134,7 +119,6 @@ setup(
     # $ setup.py publish support.
     cmdclass={
         'upload': UploadCommand,
-        # 'install': CustomInstallCommand,
     },
 )
 
