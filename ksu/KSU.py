@@ -19,17 +19,13 @@ METRICS = {v:v for v in VALID_METRICS['brute'] if v != 'precomputed'}
 METRICS['EditDistance'] = Metrics.editDistance
 METRICS['EarthMover']   = Metrics.earthMoverDistance
 
-# sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'nn_condensing', 'Python Implementation'))
-# from nn_condensing import nn # this only looks like an error because the IDE doesn't understand the ugly hack above ^
-from Utils         import computeGammaSet, \
-                          computeLabels, \
-                          optimizedComputeLabels, \
-                          optimizedComputeAlpha, \
-                          computeQ, \
-                          TqdmHandler, TqdmStream
+from Utils import computeGammaSet, \
+                  computeLabels, \
+                  optimizedComputeLabels, \
+                  optimizedComputeAlpha, \
+                  computeQ
 
 def constructGammaNet(Xs, gram, gamma, prune):
-
     chosenXs, chosen = hieracConstructEpsilonNet(Xs, gram, gamma)
     if prune:
         pass # TODO shoud we also implement this?

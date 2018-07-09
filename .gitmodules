@@ -1,4 +1,0 @@
-[submodule "ksu/nn_condensing"]
-	path = ksu/nn_condensing
-	url = https://bitbucket.org/yKorsunsky/1-nn-condensing.git
-	ignore = all
