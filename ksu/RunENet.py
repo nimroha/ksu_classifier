@@ -16,7 +16,9 @@ def main(argv=None):
         argv = sys.argv
 
     parser = argparse.ArgumentParser(description='Generate an epsilon net of the dataset')
-    parser.add_argument('--data_in',       help='Path to input data file (in .npz format with a node named X)',                required=True)
+    parser.add_argument('--data_in',       help='Path to input data file (in .npz format with a node named X)\n'
+                                                'If another node named Y is present, the script will save the'
+                                                'respective labels from Y',                                                    required=True)
     parser.add_argument('--data_out',      help='Path where output data will be saved',                                        required=True)
     parser.add_argument('--epsilon',       help='Required epsilon of net',                                                     required=True, type=float)
     parser.add_argument('--metric',        help='Metric to use (unless custom_metric is provided). {}'.format(METRICS.keys()), default='l2')
@@ -66,7 +68,17 @@ def main(argv=None):
                     ms=METRICS.keys()))
 
     logger.info('Reading data...')
-    Xs = parseInputData(dataInPath)['X']
+    data = np.load(dataInPath)
+    try:
+        Xs = data['X']
+    except KeyError:
+        raise RuntimeError('{} does not contain a node named X'.format(dataInPath))
+
+    try:
+        Ys = data['Y']
+    except KeyError:
+        Ys = None
+        logger.debug('No labels')
 
     if gramPath is None:
         logger.info('Computing Gram matrix...')
@@ -85,16 +97,19 @@ def main(argv=None):
         construct = EpsilonNet.hieracConstructEpsilonNet
 
     tStartNet   = time()
-    net         = construct(Xs, gram, epsilon)
-    compression = float(len(Xs)) / len(net)
+    net, idxs   = construct(Xs, gram, epsilon)
+    compression = float(len(net)) / len(Xs)
     logger.info('Achieved {c} compression in time {t}s\n'
                 'saving compressed set to {p}...'.format(
         c=compression,
         p=dataOutPath,
         t=time() - tStartNet))
 
-    np.savez_compressed(dataOutPath, X=net)
+    dataOut = {'X': net}
+    if Ys is not None:
+        dataOut = {'Y': Ys[idxs]}
 
+    np.savez_compressed(dataOutPath, **dataOut)
     logger.info('Done')
 
 if __name__ == '__main__' :

@@ -12,15 +12,16 @@ def main(argv=None):
         argv = sys.argv
 
     parser = argparse.ArgumentParser(description='Generate a 1 nearest neighbors classifier fitted to a KSU compressed dataset')
-    parser.add_argument('--data_in',       help='Path to input data file (in .npz format with 2 nodes named X and Y)',         required=True)
-    parser.add_argument('--data_out',      help='Path where output data will be saved',                                        required=True)
-    parser.add_argument('--metric',        help='Metric to use (unless custom_metric is provided). {}'.format(METRICS.keys()), default='l2')
-    parser.add_argument('--custom_metric', help='Absolute path to a directory (containing __init__.py) with a python file'
-                                                'named Distance.py with a function named "dist(a, b)" that computes'
-                                                'the distance between a and b by any metric of choice',                        default=None)
-    parser.add_argument('--gram',          help='Path to a precomputed gram matrix (in .npz format with a node named gram)',   default=None)
-    parser.add_argument('--delta',         help='Required confidence level',                                                   default=0.05, type=float)
-    parser.add_argument('--log_level',     help='Logging level',                                                               default='INFO')
+    parser.add_argument('--data_in',         help='Path to input data file (in .npz format with 2 nodes named X and Y)',         required=True)
+    parser.add_argument('--data_out',        help='Path where output data will be saved',                                        required=True)
+    parser.add_argument('--metric',          help='Metric to use (unless custom_metric is provided). {}'.format(METRICS.keys()), default='l2')
+    parser.add_argument('--custom_metric',   help='Absolute path to a directory (containing __init__.py) with a python file'
+                                                  'named Distance.py with a function named "dist(a, b)" that computes'
+                                                  'the distance between a and b by any metric of choice',                        default=None)
+    parser.add_argument('--gram',            help='Path to a precomputed gram matrix (in .npz format with a node named gram)',   default=None)
+    parser.add_argument('--compress_limits', help='high,low compression ratio limits (comma separated, no spaces)',              default=None)
+    parser.add_argument('--delta',           help='Required confidence level',                                                   default=0.05, type=float)
+    parser.add_argument('--log_level',       help='Logging level',                                                               default='INFO')
 
     args = parser.parse_args()
 
@@ -34,6 +35,7 @@ def main(argv=None):
     metric       = args.metric
     delta        = args.delta
     customMetric = args.custom_metric
+    compressLims = args.compress_limits
 
     if customMetric is not None:
         sys.path.append(customMetric)
@@ -63,7 +65,21 @@ def main(argv=None):
         logger.info('Loading gram...')
         gram = np.load(gramPath)['gram']
 
-    ksu = KSU(data['X'], data['Y'], metric, gram, logLevel=logging.INFO)
+    if compressLims is None:
+        ksu = KSU(data['X'], data['Y'], metric, gram, logLevel=logging.INFO)
+    else:
+        ratios = compressLims.split(',')
+        try:
+            maxC = float(ratios[0])
+            minC = float(ratios[1])
+        except (IndexError, ValueError):
+            raise RuntimeError('compress_limits shoud be two floats, comma separated, no spaces.\ngiven {}'.format(compressLims))
+
+        if maxC < minC:
+            raise RuntimeError('compress_limits order is <high>,<low>')
+
+        ksu = KSU(data['X'], data['Y'], metric, gram, logLevel=logging.INFO, maxCompress=maxC, minCompress=minC)
+
     ksu.compressData(delta)
     Xs, Ys = ksu.getCompressedSet()
     compression = ksu.getCompression()

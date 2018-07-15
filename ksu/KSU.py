@@ -33,10 +33,12 @@ def constructGammaNet(Xs, gram, gamma, prune):
 
 class KSU(object):
 
-    def __init__(self, Xs, Ys, metric, gram=None, prune=False, logLevel=logging.CRITICAL, n_jobs=1):
+    def __init__(self, Xs, Ys, metric, gram=None, prune=False, minCompress=0.1, maxCompress=0.05, logLevel=logging.CRITICAL, n_jobs=1):
         self.Xs          = Xs
         self.Ys          = Ys
         self.prune       = prune
+        self.minC        = minCompress
+        self.maxC        = maxCompress
         self.logger      = logging.getLogger('KSU')
         self.metric      = metric
         self.n_jobs      = n_jobs
@@ -101,11 +103,11 @@ class KSU(object):
                 t=time() - tStart,
                 c=compression))
 
-            if compression > 0.1:
-                continue # hueristic: don't bother compressing by less than an order of magnitude
+            if compression > self.minC:
+                continue # heuristic: don't bother compressing by less than an order of magnitude
 
-            if compression < 0.08:
-                break
+            if compression < self.maxC:
+                break # heuristic: gammas are decreasing so we might as well stop here
 
             if len(gammaXs) < self.numClasses:
                 self.logger.debug(
