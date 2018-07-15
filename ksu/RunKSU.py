@@ -21,6 +21,8 @@ def main(argv=None):
     parser.add_argument('--gram',            help='Path to a precomputed gram matrix (in .npz format with a node named gram)',   default=None)
     parser.add_argument('--compress_limits', help='high,low compression ratio limits (comma separated, no spaces)',              default=None)
     parser.add_argument('--delta',           help='Required confidence level',                                                   default=0.05, type=float)
+    parser.add_argument('--mode',            help='which constuction mode.\n'
+                                                  '"G" for greedy (faster, but bigger net), "H" for hierarchical',               default="G")
     parser.add_argument('--log_level',       help='Logging level',                                                               default='INFO')
 
     args = parser.parse_args()
@@ -34,8 +36,14 @@ def main(argv=None):
     gramPath     = args.gram
     metric       = args.metric
     delta        = args.delta
+    mode         = args.mode
     customMetric = args.custom_metric
     compressLims = args.compress_limits
+
+    if mode not in ['G', 'H']:
+        raise RuntimeError('Mode {} is not supported. must be either of "G" for greedy (faster, but bigger net), "H" for hierarchical'.format(mode))
+
+    greedy = mode == 'G'
 
     if customMetric is not None:
         sys.path.append(customMetric)
@@ -66,7 +74,7 @@ def main(argv=None):
         gram = np.load(gramPath)['gram']
 
     if compressLims is None:
-        ksu = KSU(data['X'], data['Y'], metric, gram, logLevel=logging.INFO)
+        ksu = KSU(data['X'], data['Y'], metric, gram, logLevel=logging.INFO, greedy=greedy)
     else:
         ratios = compressLims.split(',')
         try:
@@ -76,9 +84,9 @@ def main(argv=None):
             raise RuntimeError('compress_limits shoud be two floats, comma separated, no spaces.\ngiven {}'.format(compressLims))
 
         if maxC < minC:
-            raise RuntimeError('compress_limits order is <high>,<low>')
+            raise RuntimeError('compress_limits argument order is <high>,<low>')
 
-        ksu = KSU(data['X'], data['Y'], metric, gram, logLevel=logging.INFO, maxCompress=maxC, minCompress=minC)
+        ksu = KSU(data['X'], data['Y'], metric, gram, logLevel=logging.INFO, maxCompress=maxC, minCompress=minC, greedy=greedy)
 
     ksu.compressData(delta)
     Xs, Ys = ksu.getCompressedSet()

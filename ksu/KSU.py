@@ -10,9 +10,9 @@ from tqdm                     import tqdm
 from sklearn.neighbors        import KNeighborsClassifier
 from sklearn.neighbors.base   import VALID_METRICS
 from sklearn.metrics.pairwise import pairwise_distances
+from epsilon_net.EpsilonNet   import greedyConstructEpsilonNetWithGram, hieracConstructEpsilonNet
 
 import Metrics
-from epsilon_net.EpsilonNet import hieracConstructEpsilonNet
 
 METRICS = {v:v for v in VALID_METRICS['brute'] if v != 'precomputed'}
 METRICS['EditDistance'] = Metrics.editDistance
@@ -24,8 +24,12 @@ from Utils import computeGammaSet, \
                   optimizedComputeAlpha, \
                   computeQ
 
-def constructGammaNet(Xs, gram, gamma, prune):
-    chosenXs, chosen = hieracConstructEpsilonNet(Xs, gram, gamma)
+def constructGammaNet(Xs, gram, gamma, prune, greedy=True):
+    if greedy:
+        chosenXs, chosen = greedyConstructEpsilonNetWithGram(Xs, gram, gamma)
+    else:
+        chosenXs, chosen = hieracConstructEpsilonNet(Xs, gram, gamma)
+
     if prune:
         pass # TODO shoud we also implement this?
 
@@ -33,12 +37,13 @@ def constructGammaNet(Xs, gram, gamma, prune):
 
 class KSU(object):
 
-    def __init__(self, Xs, Ys, metric, gram=None, prune=False, minCompress=0.1, maxCompress=0.05, logLevel=logging.CRITICAL, n_jobs=1):
+    def __init__(self, Xs, Ys, metric, gram=None, prune=False, minCompress=0.05, maxCompress=0.1, greedy=True, logLevel=logging.CRITICAL, n_jobs=1):
         self.Xs          = Xs
         self.Ys          = Ys
         self.prune       = prune
         self.minC        = minCompress
         self.maxC        = maxCompress
+        self.greedy      = greedy
         self.logger      = logging.getLogger('KSU')
         self.metric      = metric
         self.n_jobs      = n_jobs
@@ -96,18 +101,18 @@ class KSU(object):
         self.logger.debug('Choosing from {} gammas'.format(len(gammaSet)))
         for gamma in tqdm(gammaSet):
             tStart = time()
-            gammaXs, gammaIdxs = constructGammaNet(self.Xs, self.gram, gamma, self.prune)
+            gammaXs, gammaIdxs = constructGammaNet(self.Xs, self.gram, gamma, prune=self.prune, greedy=self.greedy)
             compression = float(len(gammaXs)) / n
             self.logger.debug('Gamma: {g}, net construction took {t:.3f}s, compression: {c}'.format(
                 g=gamma,
                 t=time() - tStart,
                 c=compression))
 
-            if compression > self.minC:
+            if compression > self.maxC:
                 continue # heuristic: don't bother compressing by less than an order of magnitude
 
-            if compression < self.maxC:
-                break # heuristic: gammas are decreasing so we might as well stop here
+            if compression < self.minC:
+                break # heuristic: gammas are increasing, so we might as well stop here
 
             if len(gammaXs) < self.numClasses:
                 self.logger.debug(
@@ -135,7 +140,13 @@ class KSU(object):
             q = computeQ(n, alpha, 2 * m, delta)
 
             if q < qMin:
-                self.logger.debug('Gamma: {g} achieved lowest q so far: {q}'.format(g=gamma, q=q))
+                self.logger.info(
+                    'Gamma: {g} achieved lowest q so far: {q}, for compression {c}, and empirical error {a}'.format(
+                        g=gamma,
+                        q=q,
+                        c=compression,
+                        a=alpha))
+
                 qMin             = q
                 bestGamma        = gamma
                 self.chosenXs    = gammaXs
