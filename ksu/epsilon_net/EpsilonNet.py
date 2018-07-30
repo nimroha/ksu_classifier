@@ -8,7 +8,7 @@ from math import log, ceil, floor
 
 
 def greedyConstructEpsilonNetWithGram(points, gram, epsilon):
-    idx = np.random.randint(0, len(points) - 1)
+    idx = np.random.randint(0, len(points))
 
     net     = np.zeros_like(points)
     netGram = np.full_like(gram, np.inf)
@@ -27,11 +27,11 @@ def greedyConstructEpsilonNetWithGram(points, gram, epsilon):
     return net[taken], taken
 
 def buildLevel(p, i, radius, gram, S, N, P, C):
-    T = [e for l in [list(C[r, i]) for x in P[p, i] for r in N[x, i]] for e in l] #TODO simplify or explain
+    T = [e for l in [list(C[r, i - 1]) for x in P[p, i] for r in N[x, i]] for e in l] #TODO simplify or explain
     # print('reg', T)
     for r in T:
         if gram[r, p] < radius:
-            P[p, i - 1] = {r} #TODO take only one point or all points?
+            P[p, i - 1] = {r}
             return
 
     S[i - 1].add(p)
@@ -44,7 +44,7 @@ def buildLevel(p, i, radius, gram, S, N, P, C):
             N[r, i - 1].add(p)
 
 def optimizedBuildLevel(p, i, radius, gram, S, N, P, C):
-    T = np.squeeze(np.argwhere(C[np.squeeze(N[P[p, i], i]), i + 1]))
+    T = np.squeeze(np.argwhere(C[np.squeeze(N[P[p, i], i]), i + 1])) #TODO should be i-1
     print('opt', list(T))
 
     if len(T) > 0:
@@ -64,7 +64,7 @@ def optimizedBuildLevel(p, i, radius, gram, S, N, P, C):
     C[P[p, i], i + 1] |= P[p, i]
 
 def hieracConstructEpsilonNet(points, gram, epsilon):
-    lowestLvl = int(floor(log(epsilon, 2)) + 1)
+    lowestLvl = int(floor(log(epsilon, 2)))
     n = len(points)
     levels = range(1, lowestLvl - 1, -1)
 
@@ -72,7 +72,7 @@ def hieracConstructEpsilonNet(points, gram, epsilon):
     startIdx = np.random.randint(0, n)
 
     #init S - nets
-    S = {i:set() for i in levels}
+    S = {i: set() for i in levels}
     S[levels[0]].add(startIdx)
 
     #init P - parents
@@ -98,7 +98,7 @@ def hieracConstructEpsilonNet(points, gram, epsilon):
     return points[list(S[lowestLvl])], list(S[lowestLvl])
 
 def optmizedHieracConstructEpsilonNet(points, gram, epsilon):
-    lowestLvl = int(floor(log(epsilon, 2)) + 1)
+    lowestLvl = int(floor(log(epsilon, 2)))
     levels = range(1, lowestLvl - 1, -1)
 
     n = len(points)
@@ -146,7 +146,6 @@ def optmizedHieracConstructEpsilonNet(points, gram, epsilon):
     # guaranteed to by an e-net of at least epsilon
     return points[list(S[lowestLvl])], list(S[lowestLvl])
 
-# from sklearn.metrics.pairwise import pairwise_distances
 # # xs = np.array([[0, 0],
 # #                [0, 1],
 # #                [1, 0],
@@ -157,15 +156,17 @@ def optmizedHieracConstructEpsilonNet(points, gram, epsilon):
 # #                [3, 2]])
 # ys   = np.array([2, 0, 1, 2, 0, 1, 0, 2])
 # x0   = np.array([0, 0])
-# x1   = np.array([0, 0.5])
-# x2   = np.array([0.5, 0])
-# x3   = np.array([0.5, 0.5])
-# # x4   = np.array([0.5, 1])
-# # x5   = np.array([1, 0.5])
-# # x6   = np.array([1, 1])
-# xs   = np.vstack((x0, x1, x2, x3))
+# x1   = np.array([0, 0.51])
+# x2   = np.array([0.51, 0])
+# x3   = np.array([0.51, 0.51])
+# x4   = np.array([0.51, 1.2])
+# x5   = np.array([1.2, 0.51])
+# x6   = np.array([1.2, 1.2])
+# xs   = np.vstack((x0, x1, x2, x3, x4, x5, x6))
+# from sklearn.metrics.pairwise import pairwise_distances
 # gram = pairwise_distances(xs, metric='l2')
 # gram = gram / np.max(gram)
 # print(gram)
-# for i in range(1):
-#     print(optmizedHieracConstructEpsilonNet(xs, gram, 0.6))
+# for i in range(25):
+#     print(hieracConstructEpsilonNet(xs, gram, 0.5)[0])
+#     print()
