@@ -10,7 +10,8 @@ from tqdm                     import tqdm
 from sklearn.neighbors        import KNeighborsClassifier
 from sklearn.neighbors.base   import VALID_METRICS
 from sklearn.metrics.pairwise import pairwise_distances
-from epsilon_net.EpsilonNet   import greedyConstructEpsilonNetWithGram, hieracConstructEpsilonNet
+from epsilon_net.EpsilonNet import greedyConstructEpsilonNetWithGram, hieracConstructEpsilonNet, \
+    optmizedHieracConstructEpsilonNet
 
 import Metrics
 
@@ -29,6 +30,17 @@ def constructGammaNet(Xs, gram, gamma, prune, greedy=True):
         chosenXs, chosen = greedyConstructEpsilonNetWithGram(Xs, gram, gamma)
     else:
         chosenXs, chosen = hieracConstructEpsilonNet(Xs, gram, gamma)
+
+    if prune:
+        pass # TODO shoud we also implement this?
+
+    return chosenXs, np.where(chosen)
+
+def optimizedConstructGammaNet(Xs, gram, gamma, prune, greedy=True):
+    if greedy:
+        chosenXs, chosen = greedyConstructEpsilonNetWithGram(Xs, gram, gamma)
+    else:
+        chosenXs, chosen = optmizedHieracConstructEpsilonNet(Xs, gram, gamma)
 
     if prune:
         pass # TODO shoud we also implement this?
@@ -157,14 +169,3 @@ class KSU(object):
             g=bestGamma,
             q=qMin,
             c=self.compression))
-
-
-
-
-
-
-
-
-
-
-

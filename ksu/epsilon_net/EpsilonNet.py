@@ -115,57 +115,34 @@ def optmizedHieracConstructEpsilonNet(points, gram, epsilon):
     Pvec = np.zeros([n, l, n], dtype=np.bool)
     Cvec = np.zeros([n, l, n], dtype=np.bool)
 
-    #init S - nets
-    S = {i:set() for i in levels}
-    S[levels[0]].add(startIdx)
-    Svec[0, startIdx] = 1
-
-    #init P - parents
-    P = {(p, i): set() for p in range(n) for i in levels}
-    for p in range(n):
-        P[p, levels[0]] = {startIdx}
-    Pvec[:, 0, startIdx] = 1
-
-    #init N - neighbors
-    N = {(p, i): set() for p in range(n) for i in levels}
-    N[startIdx, levels[0]] = {startIdx}
-    Nvec[startIdx, 0, startIdx] = 1
-
-    #init C - covered
-    C = {(p, i): set() for p in range(n) for i in levels}
+    Svec[0, startIdx] = True
+    Pvec[:, 0, startIdx] = True
+    Nvec[startIdx, 0, startIdx] = True
 
     for j, i in enumerate(levels[:-1]):
         radius = pow(2, i - 1)
-        for p in S[i]:
-            buildLevel(p, i, radius, gram, S, N, P, C)
+        for p in [k for k, x in enumerate(Svec[j,:]) if x]:
             optimizedBuildLevel(p, j, radius, gram, Svec, Nvec, Pvec, Cvec)
-        for p in set(range(n)) - S[i]:
-            buildLevel(p, i, radius, gram, S, N, P, C)
+        for p in [k for k, x in enumerate(Svec[j,:]) if not x]:
             optimizedBuildLevel(p, j, radius, gram, Svec, Nvec, Pvec, Cvec)
 
     # guaranteed to by an e-net of at least epsilon
-    return points[list(S[lowestLvl])], list(S[lowestLvl])
+    netIndices = [i for i, x in enumerate(Svec[lowestLvl,:]) if x]
+    return points[netIndices], list(netIndices)
 
-# from sklearn.metrics.pairwise import pairwise_distances
-# # xs = np.array([[0, 0],
-# #                [0, 1],
-# #                [1, 0],
-# #                [1, 1],
-# #                [2, 1],
-# #                [3, 1],
-# #                [2, 2],
-# #                [3, 2]])
-# ys   = np.array([2, 0, 1, 2, 0, 1, 0, 2])
-# x0   = np.array([0, 0])
-# x1   = np.array([0, 0.5])
-# x2   = np.array([0.5, 0])
-# x3   = np.array([0.5, 0.5])
-# # x4   = np.array([0.5, 1])
-# # x5   = np.array([1, 0.5])
-# # x6   = np.array([1, 1])
-# xs   = np.vstack((x0, x1, x2, x3))
-# gram = pairwise_distances(xs, metric='l2')
-# gram = gram / np.max(gram)
-# print(gram)
-# for i in range(1):
-#     print(optmizedHieracConstructEpsilonNet(xs, gram, 0.6))
+from sklearn.metrics.pairwise import pairwise_distances
+x0   = np.array([0, 0])
+x1   = np.array([0, 0.5])
+x2   = np.array([0.5, 0])
+x3   = np.array([0.5, 0.5])
+# x4   = np.array([0.5, 1])
+# x5   = np.array([1, 0.5])
+# x6   = np.array([1, 1])
+xs   = np.vstack((x0, x1, x2, x3))
+gram = pairwise_distances(xs, metric='l2')
+gram = gram / np.max(gram)
+print(gram)
+for i in range(1):
+    print(optmizedHieracConstructEpsilonNet(xs, gram, 0.8))
+    print(hieracConstructEpsilonNet(xs, gram, 0.8))
+    print(greedyConstructEpsilonNetWithGram(xs, gram, 0.8))
