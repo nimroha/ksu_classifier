@@ -44,20 +44,43 @@ def buildLevel(p, i, radius, gram, S, N, P, C):
             N[r, i - 1].add(p)
 
 def optimizedBuildLevel(p, i, radius, gram, S, N, P, C):
-    T = np.squeeze(np.argwhere(C[np.squeeze(N[P[p, i], i]), i + 1])) #TODO should be i-1
-    print('opt', list(T))
+    def whereAndSqeeze(A):
+        return np.squeeze(np.argwhere(A))
 
-    if len(T) > 0:
-        tGram = gram[T]
-        minTGram = np.min(tGram, axis=0) #TODO ensure axis 0
-        j = np.argmin(minTGram)
-        if minTGram[j] < radius:
-            P[p, i + 1, j] = True
-            return
+    _P = P[p,i]
+    if np.any(_P):
+        _N = N[whereAndSqeeze(_P), i]
+        if np.any(_N):
+            _C = C[whereAndSqeeze(_N), i - 1]
+            if np.any(_C):
+                T = whereAndSqeeze(_C)
+                print('opt', list(T))
 
-        valid = np.where(minTGram < 4 * radius)
-        N[p, i + 1] |= valid
-        N[valid, i + 1, p] = True
+                tGram = gram[T]
+                minTGram = np.min(tGram, axis=0)  # TODO ensure axis 0
+                j = np.argmin(minTGram)
+                if minTGram[j] < radius:
+                    P[p, i + 1, j] = True
+                    return
+
+                valid = np.where(minTGram < 4 * radius)
+                N[p, i + 1] |= valid
+                N[valid, i + 1, p] = True
+
+    # T = np.squeeze(np.argwhere(C[np.squeeze(N[P[p, i], i]), i - 1])) #TODO should be i-1
+    # print('opt', list(T))
+    #
+    # if len(T) > 0:
+    #     tGram = gram[T]
+    #     minTGram = np.min(tGram, axis=0) #TODO ensure axis 0
+    #     j = np.argmin(minTGram)
+    #     if minTGram[j] < radius:
+    #         P[p, i + 1, j] = True
+    #         return
+    #
+    #     valid = np.where(minTGram < 4 * radius)
+    #     N[p, i + 1] |= valid
+    #     N[valid, i + 1, p] = True
 
     S[i + 1, p]    = True
     N[p, i + 1, p] = True
@@ -132,9 +155,9 @@ def optmizedHieracConstructEpsilonNet(points, gram, epsilon):
 
 from sklearn.metrics.pairwise import pairwise_distances
 x0   = np.array([0, 0])
-x1   = np.array([0, 0.5])
-x2   = np.array([0.5, 0])
-x3   = np.array([0.5, 0.5])
+x1   = np.array([0, 0.51])
+x2   = np.array([0.51, 0])
+x3   = np.array([0.51, 0.51])
 # x4   = np.array([0.5, 1])
 # x5   = np.array([1, 0.5])
 # x6   = np.array([1, 1])
@@ -143,7 +166,7 @@ gram = pairwise_distances(xs, metric='l2')
 gram = gram / np.max(gram)
 print(gram)
 for i in range(1):
-    print(optmizedHieracConstructEpsilonNet(xs, gram, 0.8))
-    print(hieracConstructEpsilonNet(xs, gram, 0.8))
-    print(greedyConstructEpsilonNetWithGram(xs, gram, 0.8))
+    print(greedyConstructEpsilonNetWithGram(xs, gram, 0.125))
+    print(hieracConstructEpsilonNet(xs, gram, 0.125))
+    print(optmizedHieracConstructEpsilonNet(xs, gram, 0.125))
 

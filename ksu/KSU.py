@@ -113,7 +113,7 @@ class KSU(object):
         self.logger.debug('Choosing from {} gammas'.format(len(gammaSet)))
         for gamma in tqdm(gammaSet):
             tStart = time()
-            gammaXs, gammaIdxs = constructGammaNet(self.Xs, self.gram, gamma, prune=self.prune, greedy=self.greedy)
+            gammaXs, gammaIdxs = optimizedConstructGammaNet(self.Xs, self.gram, gamma, prune=self.prune, greedy=self.greedy)
             compression = float(len(gammaXs)) / n
             self.logger.debug('Gamma: {g}, net construction took {t:.3f}s, compression: {c}'.format(
                 g=gamma,
