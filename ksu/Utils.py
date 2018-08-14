@@ -62,31 +62,26 @@ def computeQ(n, m, alpha, delta):
 def computeLabels(gammaXs, Xs, Ys, metric, n_jobs): # TODO deprecate after testing optimizedComputeLabels
     gammaN  = len(gammaXs)
     gammaYs = range(gammaN)
-    h = KNeighborsClassifier(n_neighbors=1, metric=metric, algorithm='auto', n_jobs=n_jobs)
+    h       = KNeighborsClassifier(n_neighbors=1, metric=metric, algorithm='auto', n_jobs=n_jobs)
     h.fit(gammaXs, gammaYs)
-    groups = [Counter() for _ in range(gammaN)]
+    groups      = [Counter() for _ in range(gammaN)]
     predictions = h.predict(Xs) # cluster id for each x (ids form gammaYs)
-    for label in gammaYs:
-        groups[label].update(Ys[np.where(predictions == label)]) # count all the labels in the cluster
+    [groups[label].update(Ys[np.where(predictions == label)]) for label in gammaYs] # count all the labels in the cluster
 
     return [c.most_common(1)[0][0] for c in groups]
 
 def computeAlpha(gammaXs, gammaYs, Xs, Ys, metric):
     classifier = KNeighborsClassifier(n_neighbors=1, metric=metric, algorithm='auto', n_jobs=-1)
     classifier.fit(gammaXs, gammaYs)
+
     return classifier.score(Xs, Ys)
 
 def optimizedComputeAlpha(gammaYs, Ys, gammaGram):
     n       = len(Ys)
-    missed  = 0
-    nearest = np.argsort(gammaGram, axis=0)[0] # top row of the argsorted gram matrix are the nearest
-                                               # neighbors' indices in the compressed set
-                                               # TODO change to np.min(gammaGram, axis=0)
+    nearest = np.argmin(gammaGram, axis=0) # nearest neighbors' indices in the compressed set
+    missed  = [int(Ys[i] != gammaYs[nearest[i]]) for i in range(n)] #TODO vectorize: np.mean(np.where(Ys != gammaYs[nearest])
 
-    for i in range(n):
-        missed += int(Ys[i] != gammaYs[nearest[i]]) #TODO vectorize: np.mean(np.where(Ys != gammaYs[nearest])
-
-    return float(missed) / n
+    return float(np.sum(missed)) / n
 
 def computeGammaSet(gram, stride=None):
     gammaSet = np.unique(gram)

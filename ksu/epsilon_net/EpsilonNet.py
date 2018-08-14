@@ -153,20 +153,26 @@ def optmizedHieracConstructEpsilonNet(points, gram, epsilon):
     netIndices = [i for i, x in enumerate(Svec[lowestLvl,:]) if x]
     return points[netIndices], list(netIndices)
 
-from sklearn.metrics.pairwise import pairwise_distances
-x0   = np.array([0, 0])
-x1   = np.array([0, 0.51])
-x2   = np.array([0.51, 0])
-x3   = np.array([0.51, 0.51])
+# from sklearn.metrics.pairwise import pairwise_distances
+# x0   = np.array([0, 0])
+# x1   = np.array([0, 0.51])
+# x2   = np.array([0.51, 0])
+# x3   = np.array([0.51, 0.51])
 # x4   = np.array([0.5, 1])
 # x5   = np.array([1, 0.5])
 # x6   = np.array([1, 1])
-xs   = np.vstack((x0, x1, x2, x3))
-gram = pairwise_distances(xs, metric='l2')
-gram = gram / np.max(gram)
-print(gram)
-for i in range(1):
-    print(greedyConstructEpsilonNetWithGram(xs, gram, 0.125))
-    print(hieracConstructEpsilonNet(xs, gram, 0.125))
-    print(optmizedHieracConstructEpsilonNet(xs, gram, 0.125))
-
+# xs   = np.vstack((x0, x1, x2, x3, x4, x5, x6))
+# gram = pairwise_distances(xs, metric='l2')
+# gram = gram / np.max(gram)
+# print(gram)
+# print()
+# gammaGram = gram[[0,1,5]]
+# print(gammaGram)
+# n1 = np.argsort(gammaGram, axis=0)[0]
+# n2 = np.argmin(gammaGram, axis=0)
+# print(n1)
+# print(n2)
+# for i in range(1):
+#     print(greedyConstructEpsilonNetWithGram(xs, gram, 0.125))
+#     print(hieracConstructEpsilonNet(xs, gram, 0.125))
+#     print(optmizedHieracConstructEpsilonNet(xs, gram, 0.125))

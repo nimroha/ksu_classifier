@@ -21,7 +21,6 @@ METRICS['EarthMover']   = Metrics.earthMoverDistance
 
 from Utils import computeGammaSet, \
                   computeLabels, \
-                  optimizedComputeLabels, \
                   optimizedComputeAlpha, \
                   computeQ
 
@@ -105,9 +104,10 @@ class KSU(object):
 
         return h
 
-    def compressData(self, delta=0.1):
-        gammaSet    = computeGammaSet(self.gram, stride=100)
+    def compressData(self, delta=0.1, stride=100):
+        gammaSet    = computeGammaSet(self.gram, stride=stride)
         qMin        = float(np.inf)
+        bestGamma   = 0.0
         n           = len(self.Xs)
 
         self.logger.debug('Choosing from {} gammas'.format(len(gammaSet)))
@@ -138,9 +138,6 @@ class KSU(object):
             tStart  = time()
             gammaYs = computeLabels(gammaXs, self.Xs, self.Ys, self.metric, self.n_jobs)
             self.logger.debug('Gamma: {g}, label voting took {t:.3f}s'.format(g=gamma, t=time() - tStart))
-            # tStart  = time()
-            # gammaYs = optimizedComputeLabels(gammaXs, gammaIdxs, self.Xs, self.Ys, self.gram)
-            # self.logger.debug('Gamma: {g}, label voting took {t:.3f}s'.format(g=gamma, t=time() - tStart))
 
             tStart = time()
             alpha = optimizedComputeAlpha(gammaYs, self.Ys, self.gram[gammaIdxs])
