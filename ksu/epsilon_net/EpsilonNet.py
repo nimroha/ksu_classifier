@@ -83,43 +83,30 @@ def optimizedBuildLevel(p, i, radius, gram, S, N, P, C):
     :param P: parents
     :param C: covers
     """
+    def where(A):
+        ret = set()
+        
     def whereAndSqeeze(A):
-        return np.squeeze(np.argwhere(A))
+        return np.squeeze(np.argwhere(A), axis=0)
 
     _P = P[p,i]
     if np.any(_P):
         _N = N[whereAndSqeeze(_P), i]
         if np.any(_N):
-            _C = C[whereAndSqeeze(_N), i - 1]
+            _C = C[whereAndSqeeze(_N), i + 1]
             if np.any(_C):
                 T = whereAndSqeeze(_C)
                 print('opt', list(T))
 
-                tGram = gram[T]
-                minTGram = np.min(tGram, axis=0)  # TODO ensure axis 0
-                j = np.argmin(minTGram)
-                if minTGram[j] < radius:
-                    P[p, i + 1, j] = True
+                tGram = gram[p, T]
+                j = np.argmin(tGram, axis=0)  # TODO ensure axis 0
+                if tGram[j] < radius:
+                    P[p, i + 1, T[j]] = True
                     return
 
-                valid = np.where(minTGram < 4 * radius)
-                N[p, i + 1] |= valid
+                valid = [r for r in T if gram[p, r] < 4 * radius]
+                N[p, i + 1, valid] = True
                 N[valid, i + 1, p] = True
-
-    # T = np.squeeze(np.argwhere(C[np.squeeze(N[P[p, i], i]), i - 1])) #TODO should be i-1
-    # print('opt', list(T))
-    #
-    # if len(T) > 0:
-    #     tGram = gram[T]
-    #     minTGram = np.min(tGram, axis=0) #TODO ensure axis 0
-    #     j = np.argmin(minTGram)
-    #     if minTGram[j] < radius:
-    #         P[p, i + 1, j] = True
-    #         return
-    #
-    #     valid = np.where(minTGram < 4 * radius)
-    #     N[p, i + 1] |= valid
-    #     N[valid, i + 1, p] = True
 
     S[i + 1, p]    = True
     N[p, i + 1, p] = True
@@ -187,9 +174,6 @@ def optimizedHieracConstructEpsilonNet(points, gram, epsilon):
 
     #arbitrary starting point
     startIdx = np.random.randint(0, n)
-    print('startIdx', startIdx)
-    print('n', n)
-    print('l', l)
 
     Svec = np.zeros([l, n], dtype=np.bool)
     Nvec = np.zeros([n, l, n], dtype=np.bool)
@@ -216,17 +200,17 @@ def optimizedHieracConstructEpsilonNet(points, gram, epsilon):
 # x1   = np.array([0, 0.51])
 # x2   = np.array([0.51, 0])
 # x3   = np.array([0.51, 0.51])
-# x4   = np.array([0.5, 1])
-# x5   = np.array([1, 0.5])
-# x6   = np.array([1, 1])
-# xs   = np.vstack((x0, x1, x2, x3, x4, x5, x6))
+# # x4   = np.array([0.5, 1])
+# # x5   = np.array([1, 0.5])
+# # x6   = np.array([1, 1])
+# xs   = np.vstack((x0, x1, x2, x3))
 # gram = pairwise_distances(xs, metric='l2')
 # gram = gram / np.max(gram)
 # print(gram)
-# print()
-# gammaGram = gram[[0,1,5]]
-# print(gammaGram)
-# n1 = np.argsort(gammaGram, axis=0)[0]
+# for i in range(1):
+#     print(greedyConstructEpsilonNetWithGram(xs, gram, 0.125))
+#     print(hieracConstructEpsilonNet(xs, gram, 0.125))
+#     print(optmizedHieracConstructEpsilonNet(xs, gram, 0.125))
 # n2 = np.argmin(gammaGram, axis=0)
 # print(n1)
 # print(n2)
