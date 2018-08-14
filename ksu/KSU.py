@@ -11,7 +11,7 @@ from sklearn.neighbors        import KNeighborsClassifier
 from sklearn.neighbors.base   import VALID_METRICS
 from sklearn.metrics.pairwise import pairwise_distances
 from epsilon_net.EpsilonNet import greedyConstructEpsilonNetWithGram, hieracConstructEpsilonNet, \
-    optmizedHieracConstructEpsilonNet
+    optimizedHieracConstructEpsilonNet
 
 import Metrics
 
@@ -25,6 +25,17 @@ from Utils import computeGammaSet, \
                   computeQ
 
 def constructGammaNet(Xs, gram, gamma, prune, greedy=True):
+    """
+    Construct an epsilon net for parameter gamma
+
+    :param Xs: points
+    :param gram: gram matrix of the points
+    :param gamma: net parameter
+    :param prune: whether to prune the net after construction
+    :param greedy: whether to build the net greedily or with an hierarchical strategy
+
+    :return: the chosen points and their indices
+    """
     if greedy:
         chosenXs, chosen = greedyConstructEpsilonNetWithGram(Xs, gram, gamma)
     else:
@@ -36,10 +47,21 @@ def constructGammaNet(Xs, gram, gamma, prune, greedy=True):
     return chosenXs, np.where(chosen)
 
 def optimizedConstructGammaNet(Xs, gram, gamma, prune, greedy=True):
+    """
+    An optimized version of :func:constructGammaNet
+
+    :param Xs: points
+    :param gram: gram matrix of the points
+    :param gamma: net parameter
+    :param prune: whether to prune the net after construction
+    :param greedy: whether to build the net greedily or with an hierarchical strategy
+
+    :return: the chosen points and their indices
+    """
     if greedy:
         chosenXs, chosen = greedyConstructEpsilonNetWithGram(Xs, gram, gamma)
     else:
-        chosenXs, chosen = optmizedHieracConstructEpsilonNet(Xs, gram, gamma)
+        chosenXs, chosen = optimizedHieracConstructEpsilonNet(Xs, gram, gamma)
 
     if prune:
         pass # TODO shoud we also implement this?
@@ -84,18 +106,39 @@ class KSU(object):
         self.gram = self.gram / np.max(self.gram)
 
     def getCompressedSet(self):
+        """
+        Getter for compressed set
+
+        :return: the compressed set and its labels
+
+        :raise: :class:RuntimeError if :func:KSU.KSU.compressData was not run before
+        """
         if self.chosenXs is None:
             raise RuntimeError('getCompressedSet - you must run KSU.compressData first')
 
         return self.chosenXs, self.chosenYs
 
     def getCompression(self):
+        """
+        Getter for compression ratio
+
+        :return: the compression ratio
+
+        :raise: :class:RuntimeError if :func:KSU.KSU.compressData was not run before
+        """
         if self.compression is None:
             raise RuntimeError('getCompression - you must run KSU.compressData first')
 
         return self.compression
 
     def getClassifier(self):
+        """
+        Getter for 1-NN classifier fitted on the compressed set
+
+        :return: an :mod:sklearn.KNeighborsClassifier instance
+
+        :raise: :class:RuntimeError if :func:KSU.KSU.compressData was not run before
+        """
         if self.chosenXs is None:
             raise RuntimeError('getClassifier - you must run KSU.compressData first')
 
@@ -105,15 +148,21 @@ class KSU(object):
         return h
 
     def compressData(self, delta=0.1, stride=100):
-        gammaSet    = computeGammaSet(self.gram, stride=stride)
-        qMin        = float(np.inf)
-        bestGamma   = 0.0
-        n           = len(self.Xs)
+        """
+        Run the KSU algorithm to compress the dataset
+
+        :param delta: confidence for error bound
+        :param stride: number og gammas to step over without attempting a net
+        """
+        gammaSet  = computeGammaSet(self.gram, stride=stride)
+        qMin      = float(np.inf)
+        bestGamma = 0.0
+        n         = len(self.Xs)
 
         self.logger.debug('Choosing from {} gammas'.format(len(gammaSet)))
         for gamma in tqdm(gammaSet):
             tStart = time()
-            gammaXs, gammaIdxs = optimizedConstructGammaNet(self.Xs, self.gram, gamma, prune=self.prune, greedy=self.greedy)
+            gammaXs, gammaIdxs = constructGammaNet(self.Xs, self.gram, gamma, prune=self.prune, greedy=self.greedy)
             compression = float(len(gammaXs)) / n
             self.logger.debug('Gamma: {g}, net construction took {t:.3f}s, compression: {c}'.format(
                 g=gamma,

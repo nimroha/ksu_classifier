@@ -1,13 +1,26 @@
 """
 Implementation of Algorithm 3 from [Near-optimal sample compression for nearest neighbors](https://www.cs.bgu.ac.il/~karyeh/condense-journal.pdf)
 
+Epsilon Nets refer to https://en.wikipedia.org/wiki/Delone_set
+
 variable names sadly avoid normal convention to correspond to the paper notations
 """
+
 import numpy as np
-from math import log, ceil, floor
+
+from math import log, floor
 
 
 def greedyConstructEpsilonNetWithGram(points, gram, epsilon):
+    """
+    Construct an Epsilon net in a greedy fashion.
+
+    :param points: points to construct a net from
+    :param gram: gram matrix of the points (for some metric)
+    :param epsilon: epsilon parameter
+
+    :return: the points chosen for the net and their indices (as an indicator vector)
+    """
     idx = np.random.randint(0, len(points))
 
     net     = np.zeros_like(points)
@@ -27,8 +40,22 @@ def greedyConstructEpsilonNetWithGram(points, gram, epsilon):
     return net[taken], taken
 
 def buildLevel(p, i, radius, gram, S, N, P, C):
+    """
+    Builds a level in the net hierarchy.
+    (content of the loop of line 6 in the algorithm 3's pseudo-code)
+
+    :param p: starting point
+    :param i: current level in the hierarchy
+    :param radius: radius for epsilon net
+    :param gram: gram matrix of all the points
+    :param S: the entire hierarchy
+    :param N: neighbors
+    :param P: parents
+    :param C: covers
+    """
+
     T = [e for l in [list(C[r, i - 1]) for x in P[p, i] for r in N[x, i]] for e in l] #TODO simplify or explain
-    # print('reg', T)
+
     for r in T:
         if gram[r, p] < radius:
             P[p, i - 1] = {r}
@@ -44,6 +71,18 @@ def buildLevel(p, i, radius, gram, S, N, P, C):
             N[r, i - 1].add(p)
 
 def optimizedBuildLevel(p, i, radius, gram, S, N, P, C):
+    """
+    Optimized version of :func:buildLevel
+
+    :param p: starting point
+    :param i: current level in the hierarchy
+    :param radius: radius for epsilon net
+    :param gram: gram matrix of all the points
+    :param S: the entire hierarchy
+    :param N: neighbors
+    :param P: parents
+    :param C: covers
+    """
     def whereAndSqeeze(A):
         return np.squeeze(np.argwhere(A))
 
@@ -87,9 +126,19 @@ def optimizedBuildLevel(p, i, radius, gram, S, N, P, C):
     C[P[p, i], i + 1] |= P[p, i]
 
 def hieracConstructEpsilonNet(points, gram, epsilon):
+    """
+    Construct an Epsilon net in a hierarchical fashion.
+    Note: the resulting net has a radius 2^floor(log_2(epsilon))
+
+    :param points: points to construct a net from
+    :param gram: gram matrix of the points (for some metric)
+    :param epsilon: epsilon parameter
+
+    :return: the points chosen for the net and their indices (as an indicator vector)
+    """
     lowestLvl = int(floor(log(epsilon, 2)))
-    n = len(points)
-    levels = range(1, lowestLvl - 1, -1)
+    n         = len(points)
+    levels    = range(1, lowestLvl - 1, -1)
 
     #arbitrary starting point
     startIdx = np.random.randint(0, n)
@@ -117,12 +166,21 @@ def hieracConstructEpsilonNet(points, gram, epsilon):
         for p in set(range(n)) - S[i]:
             buildLevel(p, i, radius, gram, S, N, P, C)
 
-    # gauranteed to by an e-net of at least epsilon
+    # guaranteed to by an e-net of at least epsilon
     return points[list(S[lowestLvl])], list(S[lowestLvl])
 
-def optmizedHieracConstructEpsilonNet(points, gram, epsilon):
+def optimizedHieracConstructEpsilonNet(points, gram, epsilon):
+    """
+    An optimized version of :func:hieracConstructEpsilonNet
+
+    :param points: points to construct a net from
+    :param gram: gram matrix of the points (for some metric)
+    :param epsilon: epsilon parameter
+
+    :return: the points chosen for the net and their indices (as an indicator vector)
+    """
     lowestLvl = int(floor(log(epsilon, 2)))
-    levels = range(1, lowestLvl - 1, -1)
+    levels    = range(1, lowestLvl - 1, -1)
 
     n = len(points)
     l = len(levels)
