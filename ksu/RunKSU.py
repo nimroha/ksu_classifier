@@ -67,14 +67,14 @@ def main(argv=None):
 
     logger.info('Reading data...')
     data = parseInputData(dataInPath)
-
     gram = None
     if gramPath is not None:
         logger.info('Loading gram...')
         gram = np.load(gramPath)['gram']
 
     if compressLims is None:
-        ksu = KSU(data['X'], data['Y'], metric, gram, logLevel=logging.INFO, greedy=greedy)
+        maxC = 1.0
+        minC = 0.0
     else:
         ratios = compressLims.split(',')
         try:
@@ -86,10 +86,9 @@ def main(argv=None):
         if maxC < minC:
             raise RuntimeError('compress_limits argument order is <high>,<low>')
 
-        ksu = KSU(data['X'], data['Y'], metric, gram, logLevel=logging.INFO, maxCompress=maxC, minCompress=minC, greedy=greedy)
-
-    ksu.compressData(delta)
-    Xs, Ys = ksu.getCompressedSet()
+    ksu = KSU(data['X'], data['Y'], metric, gram, logLevel=logging.INFO, n_jobs=1)
+    ksu.compressData(delta, maxCompress=maxC, minCompress=minC, greedy=greedy)
+    Xs, Ys      = ksu.getCompressedSet()
     compression = ksu.getCompression()
 
     logger.info('Achieved {} compression, saving compressed set to {}...'.format(compression, dataOutPath))

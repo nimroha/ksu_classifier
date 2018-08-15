@@ -26,7 +26,7 @@ Both provide the -h flag to specify the arguments
 
  ##### Code #####
 
- This package provides a class `KSU(Xs, Ys, metric, [gram, prune, minCompress=0.05, maxCompress=0.1, greedy=True, logLevel, n_jobs])`
+ This package provides a class `KSU(Xs, Ys, metric, [gram, prune, logLevel, n_jobs])`
  
  `Xs` and `Ys` are the data points and their respective labels as [numpy  arrays](https://docs.scipy.org/doc/numpy/reference/generated/numpy.array.html) 
  
@@ -36,21 +36,29 @@ Both provide the -h flag to specify the arguments
  
  `prune` _(optional, default=False)_ a boolean indicating whether to prune the compressed set or not (Algorithm 2 from [Near-optimal sample compression for nearest neighbors](https://arxiv.org/abs/1404.3368))
 
- `minCompress` _(optional, default=0.05)_ minimal compression ratio
-
- `maxCompress` _(optional, default=0.1)_ maximum compression ratio
-
-  `greedy` _(optional, default=True)_ whether to use greedy or hierarichal strategy for net construction
-
  `logLevel` _(optional, default='CRITICAL')_ a string indicating the logging level (set to 'INFO' or 'DEBUG' to get more information)
 
  `n_jobs` _(optional, default=1)_ an integer defining how many cpus to use, pass -1 to use all. For n_jobs below -1, (n_cpus + 1 + n_jobs) are used. Thus for n_jobs = -2, all CPUs but one are used.
  
   <br>
  
-  `KSU` provides a method `compressData([delta])`
-  
-  Which selects the subset with the lowest estimated error with confidence `1 - delta`.
+  `KSU` provides a method `compressData([delta, minCompress, maxCompress, greedy, numProcs, logLevel])`
+
+  Which selects the subset with the lowest estimated error with confidence `1 - delta`. Can take arguments:
+
+  `delta` _(optional, default=0.1)_ confidence for error upper bound
+
+  `minCompress` _(optional, default=0.05)_ minimal compression ratio
+
+  `maxCompress` _(optional, default=0.1)_ maximum compression ratio
+
+  `greedy` _(optional, default=True)_ whether to use greedy or hierarichal strategy for net construction
+
+  `numProcs` _(optional, default=1)_ number of processes to use
+
+  `logLevel` _(optional, default='CRITICAL')_ a string indicating the logging level (set to 'INFO' or 'DEBUG' to get more information)
+
+  <br>
   
   You can then run `getClassifier()` which returns a 1-NN Classifer (based on [sklearn's K-NN](http://scikit-learn.org/stable/modules/generated/sklearn.neighbors.KNeighborsClassifier.html)) fitted to the compressed data.
   
