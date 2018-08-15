@@ -2,16 +2,16 @@ import os
 import sys
 import logging
 import numpy as np
+import multiprocessing as mp
 
 from time                     import time
-
-from requests_toolbelt.downloadutils import stream
 from tqdm                     import tqdm
 from sklearn.neighbors        import KNeighborsClassifier
 from sklearn.neighbors.base   import VALID_METRICS
 from sklearn.metrics.pairwise import pairwise_distances
-from epsilon_net.EpsilonNet import greedyConstructEpsilonNetWithGram, hieracConstructEpsilonNet, \
-    optimizedHieracConstructEpsilonNet
+from epsilon_net.EpsilonNet   import greedyConstructEpsilonNetWithGram, \
+                                     hieracConstructEpsilonNet, \
+                                     optimizedHieracConstructEpsilonNet
 
 import Metrics
 
@@ -143,6 +143,9 @@ def compressDataWorker(gammaSet, delta, Xs, Ys, metric, gram, minC, maxC, greedy
 
     return qMin, chosenXs, chosenYs, compression, bestGamma
 
+def compressDataWorkerWrapper(outQ, *args, **kwargs):
+    outQ.put(compressDataWorker(*args, **kwargs))
+
 class KSU(object):
 
     def __init__(self, Xs, Ys, metric, gram=None, prune=False, logLevel=logging.CRITICAL, n_jobs=1):
@@ -236,11 +239,24 @@ class KSU(object):
             qMin, self.chosenXs, self.chosenYs, self.compression, bestGamma = \
             compressDataWorker(gammaSet, delta, self.Xs, self.Ys, self.metric, self.gram, minCompress, maxCompress, greedy, logLevel=logging.DEBUG)
         else:
+            gammaSet  = gammaSet[:-(len(gammaSet) % numProcs)]
             gammaSets = np.reshape(gammaSet, [numProcs, -1])
-            raise NotImplemented
+            outputQ   = mp.Queue()
+            procs     = [mp.Process(target=compressDataWorkerWrapper,
+                                    args=(outputQ, gammaSets[i], delta, self.Xs, self.Ys, self.metric, self.gram, minCompress, maxCompress, greedy,),
+                                    kwargs={'logLevel': logging.DEBUG})
+                         for i in range(numProcs)]
 
+            for p in procs:
+                p.start()
 
-        # self.logger.info('Chosen best gamma: {g}, which achieved q: {q}, and compression: {c}'.format(
-        #     g=bestGamma,
-        #     q=qMin,
-        #     c=self.compression))
+            for p in procs:
+                p.join()
+
+            results = sorted([outputQ.get() for p in procs], key=lambda r:r[0]) # sorted by qMin
+            qMin, self.chosenXs, self.chosenYs, self.compression, bestGamma = results[0]
+
+        self.logger.info('Chosen best gamma: {g}, which achieved q: {q}, and compression: {c}'.format(
+            g=bestGamma,
+            q=qMin,
+            c=self.compression))
