@@ -70,7 +70,7 @@ def computeQ(n, m, alpha, delta):
 
     return firstTerm + secondTerm + thirdTerm
 
-def computeLabels(gammaXs, Xs, Ys, metric, n_jobs): # TODO deprecate after testing optimizedComputeLabels
+def computeLabels(gammaXs, Xs, Ys, metric, n_jobs=1): # TODO deprecate after testing optimizedComputeLabels
     """
     Compute the labels of the compressed set with a nearest neighbor majority vote
 
