@@ -48,7 +48,7 @@ def main(argv=None):
     if customMetric is not None:
         sys.path.append(customMetric)
         try:
-            from Distance import dist  # this only looks like an error because we're importing from unknown path
+            from Distance import dist  # this only looks like an error because we're importing from an unknown path
             metric = dist
             logger.debug('Loaded dist function successfully')
         except:
@@ -81,7 +81,7 @@ def main(argv=None):
             maxC = float(ratios[0])
             minC = float(ratios[1])
         except (IndexError, ValueError):
-            raise RuntimeError('compress_limits shoud be two floats, comma separated, no spaces.\ngiven {}'.format(compressLims))
+            raise RuntimeError('compress_limits shoud be two floats, comma separated, no spaces (e.g. "0.5,0.01").\ngiven {}'.format(compressLims))
 
         if maxC < minC:
             raise RuntimeError('compress_limits argument order is <high>,<low>')
