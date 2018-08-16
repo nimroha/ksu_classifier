@@ -39,7 +39,7 @@ def constructGammaNet(Xs, gram, gamma, prune, greedy=True):
     if greedy:
         chosenXs, chosen = greedyConstructEpsilonNetWithGram(Xs, gram, gamma)
     else:
-        chosenXs, chosen = hieracConstructEpsilonNet(Xs, gram, gamma)
+        chosenXs, chosen = optimizedHieracConstructEpsilonNet(Xs, gram, gamma)
 
     if prune:
         pass # TODO shoud we also implement this?
@@ -147,12 +147,12 @@ class KSU(object):
 
         return h
 
-    def compressData(self, delta=0.1, stride=100):
+    def compressData(self, delta=0.1, stride=2000):
         """
         Run the KSU algorithm to compress the dataset
 
         :param delta: confidence for error bound
-        :param stride: number og gammas to step over without attempting a net
+        :param stride: number of gammas to step over without attempting a net
         """
         gammaSet  = computeGammaSet(self.gram, stride=stride)
         qMin      = float(np.inf)

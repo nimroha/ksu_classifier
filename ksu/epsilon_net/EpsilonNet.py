@@ -83,20 +83,13 @@ def optimizedBuildLevel(p, i, radius, gram, S, N, P, C):
     :param P: parents
     :param C: covers
     """
-    def where(A):
-        ret = set()
-        
-    def whereAndSqeeze(A):
-        return np.squeeze(np.argwhere(A), axis=0)
-
     _P = P[p,i]
     if np.any(_P):
-        _N = N[whereAndSqeeze(_P), i]
+        _N = np.any(N[_P, i], axis=0)
         if np.any(_N):
-            _C = C[whereAndSqeeze(_N), i + 1]
+            _C = np.any(C[_N, i + 1], axis=0)
             if np.any(_C):
-                T = whereAndSqeeze(_C)
-                print('opt', list(T))
+                T = np.squeeze(np.argwhere(_C), axis=0)
 
                 tGram = gram[p, T]
                 j = np.argmin(tGram, axis=0)  # TODO ensure axis 0
