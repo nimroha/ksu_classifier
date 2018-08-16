@@ -20,7 +20,7 @@ This package provides two command line tools: `e-net` and `ksu`:
 * `e-net` constructs an [epsilon net](https://en.wikipedia.org/wiki/Delone_set) for a given epsilon
 * `ksu` runs the full algorithm
 
-Both provide the -h flag to specify the arguments
+Both provide the -h flag to specify the arguments, and both can save the result to the disk in [numpy's .npz](https://docs.scipy.org/doc/numpy/reference/generated/numpy.savez.html) format
 
  <br>
 
@@ -30,7 +30,7 @@ Both provide the -h flag to specify the arguments
  
  `Xs` and `Ys` are the data points and their respective labels as [numpy  arrays](https://docs.scipy.org/doc/numpy/reference/generated/numpy.array.html) 
  
- `metric` is either a callable to compute the metric or a string that names one of our provided metrics (print `ksu.KSU.METRICS.keys()` for the full list) 
+ `metric` is either a callable to compute the metric or a string that names one of our provided metrics (print `KSU.METRICS.keys()` for the full list)
  
  `gram` _(optional, default=None)_ a precomputed [gramian matrix](http://mathworld.wolfram.com/GramMatrix.html), will be calculated if not provided.
  
@@ -38,11 +38,11 @@ Both provide the -h flag to specify the arguments
 
  `logLevel` _(optional, default='CRITICAL')_ a string indicating the logging level (set to 'INFO' or 'DEBUG' to get more information)
 
- `n_jobs` _(optional, default=1)_ an integer defining how many cpus to use, pass -1 to use all. For n_jobs below -1, (n_cpus + 1 + n_jobs) are used. Thus for n_jobs = -2, all CPUs but one are used.
+ `n_jobs` _(optional, default=1)_ an integer defining how many cpus to use (scipy logic), pass -1 to use all. For n_jobs below -1, (n_cpus + 1 + n_jobs) are used. Thus for n_jobs = -2, all CPUs but one are used.
  
   <br>
  
-  `KSU` provides a method `compressData([delta, minCompress, maxCompress, greedy, numProcs, logLevel])`
+  `KSU` provides a method `compressData([delta, minCompress, maxCompress, greedy, stride, logLevel, numProcs])`
 
   Which selects the subset with the lowest estimated error with confidence `1 - delta`. Can take arguments:
 
@@ -54,9 +54,11 @@ Both provide the -h flag to specify the arguments
 
   `greedy` _(optional, default=True)_ whether to use greedy or hierarichal strategy for net construction
 
-  `numProcs` _(optional, default=1)_ number of processes to use
+  `stride` _(optional, default=200)_ how many gammas to skip between each iteration (since similar gammas will produce similar nets)
 
   `logLevel` _(optional, default='CRITICAL')_ a string indicating the logging level (set to 'INFO' or 'DEBUG' to get more information)
+
+  `numProcs` _(optional, default=1)_ number of processes to use
 
   <br>
   
