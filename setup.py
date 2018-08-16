@@ -114,7 +114,10 @@ setup(
         'Programming Language :: Python',
         'Programming Language :: Python :: 2',
         'Programming Language :: Python :: 2.7',
-        'Development Status :: 4 - Beta'
+        'Programming Language :: Python :: 3',
+        'Programming Language :: Python :: 3.5',
+        'Development Status :: 5 - Production/Stable',
+        'Intended Audience :: Science/Research'
     ],
     # $ setup.py publish support.
     cmdclass={
