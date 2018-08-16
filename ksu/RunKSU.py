@@ -92,7 +92,7 @@ def main(argv=None):
             raise RuntimeError('compress_limits argument order is <high>,<low>')
 
     ksu = KSU(data['X'], data['Y'], metric, gram, logLevel=logLevel, n_jobs=1)
-    ksu.compressData(delta=delta, maxCompress=maxC, minCompress=minC, greedy=greedy, stride=stride, numProcs=numProcs)
+    ksu.compressData(delta=delta, maxCompress=maxC, minCompress=minC, greedy=greedy, stride=stride, numProcs=numProcs, logLevel=logLevel)
     Xs, Ys      = ksu.getCompressedSet()
     compression = ksu.getCompression()
 

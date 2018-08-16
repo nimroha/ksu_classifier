@@ -53,7 +53,6 @@ def buildLevel(p, i, radius, gram, S, N, P, C):
     :param P: parents
     :param C: covers
     """
-
     T = [e for l in [list(C[r, i - 1]) for x in P[p, i] for r in N[x, i]] for e in l] #TODO simplify or explain
 
     for r in T:
@@ -187,27 +186,3 @@ def optimizedHieracConstructEpsilonNet(points, gram, epsilon):
     # guaranteed to by an e-net of at least epsilon
     netIndices = [i for i, x in enumerate(Svec[lowestLvl,:]) if x]
     return points[netIndices], list(netIndices)
-
-# from sklearn.metrics.pairwise import pairwise_distances
-# x0   = np.array([0, 0])
-# x1   = np.array([0, 0.51])
-# x2   = np.array([0.51, 0])
-# x3   = np.array([0.51, 0.51])
-# # x4   = np.array([0.5, 1])
-# # x5   = np.array([1, 0.5])
-# # x6   = np.array([1, 1])
-# xs   = np.vstack((x0, x1, x2, x3))
-# gram = pairwise_distances(xs, metric='l2')
-# gram = gram / np.max(gram)
-# print(gram)
-# for i in range(1):
-#     print(greedyConstructEpsilonNetWithGram(xs, gram, 0.125))
-#     print(hieracConstructEpsilonNet(xs, gram, 0.125))
-#     print(optmizedHieracConstructEpsilonNet(xs, gram, 0.125))
-# n2 = np.argmin(gammaGram, axis=0)
-# print(n1)
-# print(n2)
-# for i in range(1):
-#     print(greedyConstructEpsilonNetWithGram(xs, gram, 0.125))
-#     print(hieracConstructEpsilonNet(xs, gram, 0.125))
-#     print(optmizedHieracConstructEpsilonNet(xs, gram, 0.125))

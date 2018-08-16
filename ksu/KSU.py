@@ -47,28 +47,6 @@ def constructGammaNet(Xs, gram, gamma, prune=False, greedy=True):
 
     return chosenXs, np.where(chosen)
 
-def optimizedConstructGammaNet(Xs, gram, gamma, prune=False, greedy=True):
-    """
-    An optimized version of :func:constructGammaNet
-
-    :param Xs: points
-    :param gram: gram matrix of the points
-    :param gamma: net parameter
-    :param prune: whether to prune the net after construction
-    :param greedy: whether to build the net greedily or with an hierarchical strategy
-
-    :return: the chosen points and their indices
-    """
-    if greedy:
-        chosenXs, chosen = greedyConstructEpsilonNetWithGram(Xs, gram, gamma)
-    else:
-        chosenXs, chosen = optimizedHieracConstructEpsilonNet(Xs, gram, gamma)
-
-    if prune:
-        pass # TODO shoud we also implement this?
-
-    return chosenXs, np.where(chosen)
-
 def compressDataWorker(i, gammaSet, tmpFile, delta, Xs, Ys, metric, gram, minC, maxC, greedy, logLevel=logging.CRITICAL):
     pid         = os.getpid()
     n           = len(Xs)
@@ -247,7 +225,7 @@ class KSU(object):
         :param maxCompress: maximum compression ratio
         :param greedy: whether to use greedy or hierarchical strategy for net construction
         :param stride: how many gammas to skip between each iteration (similar gammas will produce similar nets)
-        :param logLevel: logging level
+        :param logLevel: :mod:logging level
         :param numProcs: number of processes to use
         """
         gammaSet = computeGammaSet(self.gram, stride=stride)
