@@ -29,7 +29,7 @@ def main(argv=None):
     print("Init time: {:.3f}".format(time() - start))
 
     start = time()
-    ksu.compressData(0.1, greedy=False)
+    ksu.compressData(delta=0.1, greedy=False, maxCompress=0.8, minCompress=0, stride=1000, logLevel='DEBUG')
     print('Compress time: {:.3f}'.format(time() - start))
 
     #stats for compressed set

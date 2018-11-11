@@ -53,7 +53,7 @@ def compressDataWorker(i, gammaSet, tmpFile, delta, Xs, Ys, metric, gram, minC, 
     numClasses  = len(np.unique(Ys))
     bestGamma   = 0.0
     qMin        = float(np.inf)
-    compression = 0.0
+    _compression = 0.0
     chosenXs    = None
     chosenYs    = None
     logger      = logging.getLogger('KSU-{}'.format(os.getpid()))
@@ -119,17 +119,17 @@ def compressDataWorker(i, gammaSet, tmpFile, delta, Xs, Ys, metric, gram, minC, 
             bestGamma   = gamma
             chosenXs    = gammaXs
             chosenYs    = gammaYs
-            compression = compression
+            _compression = compression
 
     logger.info('PID {p} - Chosen best gamma: {g}, which achieved q: {q}, and compression: {c}'.format(
         g=bestGamma,
         q=qMin,
-        c=compression,
+        c=_compression,
         p=pid))
 
     np.savez(tmpFile, X=chosenXs, Y=chosenYs)
     tmpFile.seek(0)
-    return qMin, i, compression, bestGamma
+    return qMin, i, _compression, bestGamma
 
 def compressDataWorkerWrapper(outQ, *args, **kwargs):
     try:
@@ -233,7 +233,7 @@ class KSU(object):
         if numProcs == 1:
             tmpFile = TemporaryFile()
             qMin, _, self.compression, bestGamma = \
-            compressDataWorker(-1, gammaSet, tmpFile, delta, self.Xs, self.Ys, self.metric, self.gram, minCompress, maxCompress, greedy, logLevel=logLevel)
+            compressDataWorker(-1, gammaSet, tmpFile, delta, self.Xs, self.Ys, self.metric, self.gram, minC=minCompress, maxC=maxCompress, greedy=greedy, logLevel=logLevel)
         else:
             if len(gammaSet) % numProcs > 0:
                 gammaSet = gammaSet[:-(len(gammaSet) % numProcs)]
