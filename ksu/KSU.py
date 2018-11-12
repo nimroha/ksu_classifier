@@ -10,20 +10,21 @@ from tempfile                 import TemporaryFile
 from sklearn.neighbors        import KNeighborsClassifier
 from sklearn.neighbors.base   import VALID_METRICS
 from sklearn.metrics.pairwise import pairwise_distances
-from epsilon_net.EpsilonNet   import greedyConstructEpsilonNetWithGram, \
-                                     hieracConstructEpsilonNet, \
-                                     optimizedHieracConstructEpsilonNet
 
-import Metrics
+
+from ksu.epsilon_net.EpsilonNet import greedyConstructEpsilonNetWithGram, \
+                                       optimizedHieracConstructEpsilonNet
+
+import ksu.Metrics
 
 METRICS = {v:v for v in VALID_METRICS['brute'] if v != 'precomputed'}
-METRICS['EditDistance'] = Metrics.editDistance
-METRICS['EarthMover']   = Metrics.earthMoverDistance
+METRICS['EditDistance'] = ksu.Metrics.editDistance
+METRICS['EarthMover']   = ksu.Metrics.earthMoverDistance
 
-from Utils import computeGammaSet, \
-                  computeLabels, \
-                  optimizedComputeAlpha, \
-                  computeQ
+from ksu.Utils import computeGammaSet, \
+                      computeLabels, \
+                      optimizedComputeAlpha, \
+                      computeQ
 
 def constructGammaNet(Xs, gram, gamma, prune=False, greedy=True):
     """
@@ -43,7 +44,7 @@ def constructGammaNet(Xs, gram, gamma, prune=False, greedy=True):
         chosenXs, chosen = optimizedHieracConstructEpsilonNet(Xs, gram, gamma)
 
     if prune:
-        pass # TODO shoud we also implement this?
+        pass # TODO should we also implement this?
 
     return chosenXs, np.where(chosen)
 
@@ -53,7 +54,7 @@ def compressDataWorker(i, gammaSet, tmpFile, delta, Xs, Ys, metric, gram, minC, 
     numClasses  = len(np.unique(Ys))
     bestGamma   = 0.0
     qMin        = float(np.inf)
-    _compression = 0.0
+    bestCompres = 0.0
     chosenXs    = None
     chosenYs    = None
     logger      = logging.getLogger('KSU-{}'.format(os.getpid()))
@@ -119,17 +120,17 @@ def compressDataWorker(i, gammaSet, tmpFile, delta, Xs, Ys, metric, gram, minC, 
             bestGamma   = gamma
             chosenXs    = gammaXs
             chosenYs    = gammaYs
-            _compression = compression
+            bestCompres = compression
 
     logger.info('PID {p} - Chosen best gamma: {g}, which achieved q: {q}, and compression: {c}'.format(
         g=bestGamma,
         q=qMin,
-        c=_compression,
+        c=bestCompres,
         p=pid))
 
     np.savez(tmpFile, X=chosenXs, Y=chosenYs)
     tmpFile.seek(0)
-    return qMin, i, _compression, bestGamma
+    return qMin, i, bestCompres, bestGamma
 
 def compressDataWorkerWrapper(outQ, *args, **kwargs):
     try:
