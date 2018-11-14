@@ -173,7 +173,7 @@ class KSU(object):
         else:
             self.gram = gram
 
-        self.gram     = self.gram / np.max(self.gram)
+        self.gram = self.gram / np.max(self.gram)
 
     def getCompressedSet(self):
         """
