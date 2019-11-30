@@ -1,6 +1,8 @@
 import numpy as np
 import editdistance
 
+from numba import jit
+
 #TODO add more
 
 def makeLn(n):
@@ -9,6 +11,7 @@ def makeLn(n):
 def editDistance(a, b):
     return editdistance.eval(a, b)
 
+@jit(nopython=True)
 def earthMoverDistance(u, v):
     """
     Compute the first Wasserstein distance between two 1D distributions.

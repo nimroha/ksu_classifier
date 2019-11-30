@@ -8,9 +8,10 @@ variable names sadly avoid normal convention to correspond to the paper notation
 
 import numpy as np
 
-from math import log, floor
+from math  import floor
+from numba import jit, prange
 
-
+@jit(nopython=True, nogil=True)
 def greedyConstructEpsilonNetWithGram(points, gram, epsilon):
     """
     Construct an Epsilon net in a greedy fashion.
@@ -31,7 +32,7 @@ def greedyConstructEpsilonNetWithGram(points, gram, epsilon):
     net[idx]     = points[idx]
     taken[idx]   = True
 
-    for i, p in enumerate(points): #iterate rows
+    for i in prange(len(points)): #iterate rows
         if np.min(netGram[:,i]) >= epsilon:
             net[i]     = points[i]
             netGram[i] = gram[i]
@@ -39,6 +40,7 @@ def greedyConstructEpsilonNetWithGram(points, gram, epsilon):
 
     return net[taken], taken
 
+@jit(nopython=True)
 def buildLevel(p, i, radius, gram, S, N, P, C):
     """
     Builds a level in the net hierarchy.
@@ -69,6 +71,7 @@ def buildLevel(p, i, radius, gram, S, N, P, C):
             N[p, i - 1].add(r)
             N[r, i - 1].add(p)
 
+# @jit(nopython=True)
 def optimizedBuildLevel(p, i, radius, gram, S, N, P, C):
     """
     Optimized version of :func:buildLevel
@@ -82,7 +85,7 @@ def optimizedBuildLevel(p, i, radius, gram, S, N, P, C):
     :param P: parents
     :param C: covers
     """
-    _P = P[p,i]
+    _P = P[p, i]
     if np.any(_P):
         _N = np.any(N[_P, i], axis=0)
         if np.any(_N):
@@ -115,7 +118,7 @@ def hieracConstructEpsilonNet(points, gram, epsilon):
 
     :return: the points chosen for the net and their indices (as an indicator vector)
     """
-    lowestLvl = int(floor(log(epsilon, 2)))
+    lowestLvl = int(floor(np.log2(epsilon)))
     n         = len(points)
     levels    = range(1, lowestLvl - 1, -1)
 
@@ -158,7 +161,7 @@ def optimizedHieracConstructEpsilonNet(points, gram, epsilon):
 
     :return: the points chosen for the net and their indices (as an indicator vector)
     """
-    lowestLvl = int(floor(log(epsilon, 2)))
+    lowestLvl = int(floor(np.log2(epsilon)))
     levels    = range(1, lowestLvl - 1, -1)
 
     n = len(points)

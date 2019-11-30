@@ -25,7 +25,7 @@ def main(argv=None):
     metric ='l2'
 
     startAll = start = time()
-    ksu = KSU(trainImages, trainLabels, metric, logLevel='DEBUG', n_jobs=-1)
+    ksu = KSU(trainImages, trainLabels, metric, logLevel='DEBUG', n_jobs=-2)
     print("Init time: {:.3f}".format(time() - start))
 
     start = time()

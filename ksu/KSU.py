@@ -260,7 +260,7 @@ class KSU(object):
 
             results = sorted([outputQ.get() for _ in procs], key=lambda r: r[0]) # sorted by qMin
             qMin, i, self.compression, bestGamma = results[0]
-            tmpFile = tmpFiles[i]
+            tmpFile = tmpFiles[i] if i is not None else 0
 
         if qMin == float(np.inf):
             self.logger.critical('No gamma was chosen! check logs')

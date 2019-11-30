@@ -6,3 +6,4 @@ editdistance
 mnist
 tqdm
 requests_toolbelt
+numba

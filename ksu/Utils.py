@@ -4,8 +4,9 @@ import logging
 
 from sklearn.neighbors import KNeighborsClassifier
 from collections       import Counter
-from math              import sqrt, log
+from math              import sqrt
 from tqdm              import tqdm
+from numba             import jit
 
 class TqdmHandler(logging.Handler):
     def __init__ (self, level=logging.NOTSET):
@@ -37,9 +38,6 @@ def parseInputData(dataPath):
 
     return data
 
-def log2(x):
-    return log(x, 2)
-
 def computeGram(elements, dist): #unused
     n    = len(elements)
     gram = np.array((n, n))
@@ -52,6 +50,7 @@ def computeGram(elements, dist): #unused
 
     return gram
 
+@jit(nopython=True)
 def computeQ(n, m, alpha, delta):
     """
     Compute the parameter q that approximates an upper limit for the
@@ -65,8 +64,8 @@ def computeQ(n, m, alpha, delta):
     :return: the approximation q
     """
     firstTerm  = (n * alpha) / (n - m)
-    secondTerm = (m * log2(n) - log2(delta)) / (n - m)
-    thirdTerm  = sqrt(((n * m * alpha * log2(n)) / (n - m) - log2(delta)) / (n - m))
+    secondTerm = (m * np.log2(n) - np.log2(delta)) / (n - m)
+    thirdTerm  = sqrt(((n * m * alpha * np.log2(n)) / (n - m) - np.log2(delta)) / (n - m))
 
     return firstTerm + secondTerm + thirdTerm
 
@@ -90,7 +89,7 @@ def computeLabels(gammaXs, Xs, Ys, metric, n_jobs=1): # TODO deprecate after tes
     predictions = h.predict(Xs) # cluster id for each x (ids form gammaYs)
     [groups[label].update(Ys[np.where(predictions == label)]) for label in gammaYs] # count all the labels in the cluster
 
-    return [c.most_common(1)[0][0] for c in groups]
+    return np.array([c.most_common(1)[0][0] for c in groups])
 
 def computeAlpha(gammaXs, gammaYs, Xs, Ys, metric):
     """
@@ -116,15 +115,14 @@ def optimizedComputeAlpha(gammaYs, Ys, gammaGram):
 
     :param gammaYs: compressed set labels
     :param Ys: original set labels
-    :param gammaGram: rows of the original gram matrix correesponding to the compressed set
+    :param gammaGram: rows of the original gram matrix corresponding to the compressed set
 
     :return: the misclassification error
     """
-    n       = len(Ys)
     nearest = np.argmin(gammaGram, axis=0) # nearest neighbors' indices in the compressed set
-    missed  = [int(Ys[i] != gammaYs[nearest[i]]) for i in range(n)] #TODO vectorize: np.mean(np.where(Ys != gammaYs[nearest])
+    missed  = Ys != gammaYs[nearest]
 
-    return float(np.sum(missed)) / n
+    return np.mean(missed)
 
 def computeGammaSet(gram, stride=None):
     gammaSet = np.unique(gram)
