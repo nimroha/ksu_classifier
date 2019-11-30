@@ -1,6 +1,5 @@
 import numpy as np
 import editdistance
-from scipy.stats import wasserstein_distance
 
 #TODO add more
 
@@ -10,14 +9,17 @@ def makeLn(n):
 def editDistance(a, b):
     return editdistance.eval(a, b)
 
-def earthMoverDistance(u, v, u_weights=None, v_weights=None):
+def earthMoverDistance(u, v):
     """
     Compute the first Wasserstein distance between two 1D distributions.
     :param u, v: (Array-like) Values observed in the (empirical) distribution.
-    :param u_weights, v_weights: (Array-like, optional) Weight for each value. If left unspecified,
-    each value is assigned the same weight. u_weights (resp. v_weights) must have the same length
-    as u_values (resp. v_values). If the weight sum differs from 1,
-    it must still be positive and finite so that the weights can be normalized to sum to 1.
     :return: (float) The computed distance between the distributions.
     """
-    return wasserstein_distance(u, v, u_weights, v_weights)
+    # Calculate the CDFs of u and v
+    u_cumweights = np.concatenate((np.array([0.0]), np.cumsum(u)))
+    u_cdf = u_cumweights / u_cumweights[-1]
+
+    v_cumweights = np.concatenate((np.array([0.0]), np.cumsum(v)))
+    v_cdf = v_cumweights / v_cumweights[-1]
+
+    return np.sum(np.abs(u_cdf - v_cdf))

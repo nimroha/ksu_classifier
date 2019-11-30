@@ -105,7 +105,7 @@ def compressDataWorker(i, gammaSet, tmpFile, delta, Xs, Ys, metric, gram, minC, 
             p=pid))
 
         m = len(gammaXs)
-        q = computeQ(n, alpha, 2 * m, delta)
+        q = computeQ(n, 2 * m, alpha, delta)
 
         if q < qMin:
             logger.info(
@@ -130,6 +130,7 @@ def compressDataWorker(i, gammaSet, tmpFile, delta, Xs, Ys, metric, gram, minC, 
 
     np.savez(tmpFile, X=chosenXs, Y=chosenYs)
     tmpFile.seek(0)
+
     return qMin, i, bestCompres, bestGamma
 
 def compressDataWorkerWrapper(outQ, *args, **kwargs):
@@ -217,7 +218,7 @@ class KSU(object):
 
         return h
 
-    def compressData(self, delta=0.1, minCompress=0.05, maxCompress=0.1, greedy=True, stride=200, logLevel=logging.CRITICAL, numProcs=1):
+    def compressData(self, delta=0.1, minCompress=0.05, maxCompress=0.1, greedy=True, stride=200, logLevel=logging.CRITICAL):
         """
         Run the KSU algorithm to compress the dataset
 
@@ -227,9 +228,11 @@ class KSU(object):
         :param greedy: whether to use greedy or hierarchical strategy for net construction
         :param stride: how many gammas to skip between each iteration (similar gammas will produce similar nets)
         :param logLevel: :mod:logging level
-        :param numProcs: number of processes to use
         """
         gammaSet = computeGammaSet(self.gram, stride=stride)
+
+        numProcs = self.n_jobs if self.n_jobs > 0 else mp.cpu_count() + 1 + self.n_jobs
+        self.logger.debug('using {n} cores'.format(n=numProcs))
 
         if numProcs == 1:
             tmpFile = TemporaryFile()
