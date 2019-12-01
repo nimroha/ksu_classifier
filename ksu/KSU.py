@@ -105,7 +105,7 @@ def compressDataWorker(i, gammaSet, tmpFile, delta, Xs, Ys, metric, gram, minC, 
             p=pid))
 
         m = len(gammaXs)
-        q = computeQ(n, 2 * m, alpha, delta)
+        q = computeQ(n, m, alpha, delta)
 
         if q < qMin:
             logger.info(
