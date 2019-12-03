@@ -57,7 +57,7 @@ def computeGram(elements, dist): #unused
     return gram
 
 @jit(nopython=True)
-def computeQ(n, m, alpha, delta):
+def computeQ(n, m, alpha, delta, w1=1, w2=1, w3=1):
     """
     Compute the parameter q that approximates an upper limit for the
     error of a 1-NN classifier based on the compressed set
@@ -66,6 +66,9 @@ def computeQ(n, m, alpha, delta):
     :param m: size of compressed set
     :param alpha: empirical error on the original set
     :param delta: level of confidence
+    :param w1: first term weight
+    :param w2: second term weight
+    :param w3: third term weight
 
     :return: the approximation q
     """
@@ -76,7 +79,7 @@ def computeQ(n, m, alpha, delta):
     secondTerm = (m * np.log2(n) - np.log2(delta)) / (n - m)
     thirdTerm  = sqrt(((n * m * alpha * np.log2(n)) / (n - m) - np.log2(delta)) / (n - m))
 
-    return firstTerm + secondTerm + thirdTerm
+    return w1 * firstTerm + w2 * secondTerm + w3 * thirdTerm
 
 def computeLabels(gammaXs, Xs, Ys, metric, n_jobs=1): # TODO deprecate after testing optimizedComputeLabels
     """
