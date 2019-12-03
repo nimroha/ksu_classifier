@@ -6,25 +6,25 @@ import multiprocessing as mp
 
 from time                     import time
 from tqdm                     import tqdm
-from tempfile                 import TemporaryFile
+from tempfile                 import NamedTemporaryFile
 from sklearn.neighbors        import KNeighborsClassifier
 from sklearn.neighbors.base   import VALID_METRICS
 from sklearn.metrics.pairwise import pairwise_distances
 
 
+import ksu.Metrics
 from ksu.epsilon_net.EpsilonNet import greedyConstructEpsilonNetWithGram, \
                                        optimizedHieracConstructEpsilonNet
-
-import ksu.Metrics
+from ksu.Utils import computeGammaSet, \
+                      computeLabels, \
+                      optimizedComputeAlpha, \
+                      computeQ, \
+                      configLogger
 
 METRICS = {v:v for v in VALID_METRICS['brute'] if v != 'precomputed'}
 METRICS['EditDistance'] = ksu.Metrics.editDistance
 METRICS['EarthMover']   = ksu.Metrics.earthMoverDistance
 
-from ksu.Utils import computeGammaSet, \
-                      computeLabels, \
-                      optimizedComputeAlpha, \
-                      computeQ
 
 def constructGammaNet(Xs, gram, gamma, prune=False, greedy=True):
     """
@@ -57,21 +57,17 @@ def compressDataWorker(i, gammaSet, tmpFile, delta, Xs, Ys, metric, gram, minC, 
     bestCompres = 0.0
     chosenXs    = None
     chosenYs    = None
-    logger      = logging.getLogger('KSU-{}'.format(os.getpid()))
+    logger      = logging.getLogger('KSU')
 
-    logger.addHandler(logging.StreamHandler(sys.stdout))
-    logger.setLevel(logLevel)
-
-    logger.debug('PID {} - Choosing from {} gammas'.format(pid, len(gammaSet)))
+    logger.debug('Choosing from {} gammas'.format(len(gammaSet)))
     for gamma in tqdm(gammaSet):
         tStart = time()
         gammaXs, gammaIdxs = constructGammaNet(Xs, gram, gamma, greedy=greedy)
         compression = float(len(gammaXs)) / n
-        logger.debug('PID {p} - Gamma: {g}, net construction took {t:.3f}s, compression: {c}'.format(
+        logger.debug('Gamma: {g}, net construction took {t:.3f}s, compression: {c}'.format(
             g=gamma,
             t=time() - tStart,
-            c=compression,
-            p=pid))
+            c=compression))
 
         if compression > maxC:
             continue  # heuristic: don't bother compressing by less than an order of magnitude
@@ -81,40 +77,36 @@ def compressDataWorker(i, gammaSet, tmpFile, delta, Xs, Ys, metric, gram, minC, 
 
         if len(gammaXs) < numClasses:
             logger.debug(
-                'PID {p} - Gamma: {g}, compressed set smaller than number of classes ({cc} vs {c})'
+                'Gamma: {g}, compressed set smaller than number of classes ({cc} vs {c})'
                 'no use building a classifier that will never classify some classes'.format(
                     g=gamma,
                     cc=len(gammaXs),
-                    c=numClasses,
-                    p=pid))
+                    c=numClasses))
             break
 
         tStart  = time()
         gammaYs = computeLabels(gammaXs, Xs, Ys, metric)
-        logger.debug('PID {p} - Gamma: {g}, label voting took {t:.3f}s'.format(
+        logger.debug('Gamma: {g}, label voting took {t:.3f}s'.format(
             g=gamma,
-            t=time() - tStart,
-            p=pid))
+            t=time() - tStart))
 
         tStart = time()
         alpha  = optimizedComputeAlpha(gammaYs, Ys, gram[gammaIdxs])
-        logger.debug('PID {p} - Gamma: {g}, error approximation took {t:.3f}s, error: {a}'.format(
+        logger.debug('Gamma: {g}, error approximation took {t:.3f}s, error: {a}'.format(
             g=gamma,
             t=time() - tStart,
-            a=alpha,
-            p=pid))
+            a=alpha))
 
         m = len(gammaXs)
-        q = computeQ(n, m, alpha, delta)
+        q = computeQ(n, 2 * m, alpha, delta)
 
         if q < qMin:
             logger.info(
-                'PID {p} - Gamma: {g} achieved lowest q so far: {q}, for compression {c}, and empirical error {a}'.format(
+                'Gamma: {g} achieved lowest q so far: {q}, for compression {c}, and empirical error {a}'.format(
                     g=gamma,
                     q=q,
                     c=compression,
-                    a=alpha,
-                    p=pid))
+                    a=alpha))
 
             qMin        = q
             bestGamma   = gamma
@@ -122,32 +114,27 @@ def compressDataWorker(i, gammaSet, tmpFile, delta, Xs, Ys, metric, gram, minC, 
             chosenYs    = gammaYs
             bestCompres = compression
 
-    logger.info('PID {p} - Chosen best gamma: {g}, which achieved q: {q}, and compression: {c}'.format(
+    if qMin == float(np.inf):
+        logger.info('No good gamma found between gammas: [{min} ... {max}]'.format(
+            p=pid,
+            min=gammaSet.min(),
+            max=gammaSet.max()))
+        return qMin, i, bestCompres, bestGamma
+
+    logger.info('Chosen best gamma: {g}, which achieved q: {q}, and compression: {c}'.format(
         g=bestGamma,
         q=qMin,
-        c=bestCompres,
-        p=pid))
+        c=bestCompres))
 
     np.savez(tmpFile, X=chosenXs, Y=chosenYs)
-    tmpFile.seek(0)
 
     return qMin, i, bestCompres, bestGamma
-
-def compressDataWorkerWrapper(outQ, *args, **kwargs):
-    try:
-        outQ.put(compressDataWorker(*args, **kwargs))
-    except:
-        outQ.put((float(np.inf), None, None, None,))
-        return 1
-
-    return 0
 
 class KSU(object):
 
     def __init__(self, Xs, Ys, metric, gram=None, prune=False, logLevel=logging.CRITICAL, n_jobs=1):
         self.Xs          = Xs
         self.Ys          = Ys
-        self.logger      = logging.getLogger('KSU')
         self.metric      = metric
         self.n_jobs      = n_jobs
         self.chosenXs    = None
@@ -156,7 +143,8 @@ class KSU(object):
         self.numClasses  = len(np.unique(self.Ys))
         self.prune       = prune # unused since pruning is not implemented yet
 
-        logging.basicConfig(level=logLevel)
+        self.logger = logging.getLogger('KSU')
+        configLogger(self.logger, logLevel)
 
         if isinstance(metric, str) and metric not in METRICS.keys():
             raise RuntimeError(
@@ -218,7 +206,7 @@ class KSU(object):
 
         return h
 
-    def compressData(self, delta=0.1, minCompress=0.05, maxCompress=0.1, greedy=True, stride=200, logLevel=logging.CRITICAL):
+    def compressData(self, delta=0.1, minCompress=0.01, maxCompress=0.1, greedy=True, stride=200, logLevel=logging.CRITICAL):
         """
         Run the KSU algorithm to compress the dataset
 
@@ -229,44 +217,39 @@ class KSU(object):
         :param stride: how many gammas to skip between each iteration (similar gammas will produce similar nets)
         :param logLevel: :mod:logging level
         """
-        gammaSet = computeGammaSet(self.gram, stride=stride)
-
+        gammaSet = computeGammaSet(self.gram, stride=stride) # TODO add heuristic to throw away gammas that won't satisfy the compression limits
         numProcs = self.n_jobs if self.n_jobs > 0 else mp.cpu_count() + 1 + self.n_jobs
-        self.logger.debug('using {n} cores'.format(n=numProcs))
+        self.logger.info('using {n} cores to process {g} gammas'.format(n=numProcs, g=len(gammaSet)))
 
         if numProcs == 1:
-            tmpFile = TemporaryFile()
+            tmpFile = NamedTemporaryFile()
             qMin, _, self.compression, bestGamma = \
-            compressDataWorker(-1, gammaSet, tmpFile, delta, self.Xs, self.Ys, self.metric, self.gram, minC=minCompress, maxC=maxCompress, greedy=greedy, logLevel=logLevel)
+            compressDataWorker(-1, gammaSet, tmpFile.name, delta, self.Xs, self.Ys, self.metric, self.gram, minC=minCompress, maxC=maxCompress, greedy=greedy, logLevel=logLevel)
         else:
-            if len(gammaSet) % numProcs > 0:
-                gammaSet = gammaSet[:-(len(gammaSet) % numProcs)]
+            numJobs = 4 * numProcs
+            if len(gammaSet) % numJobs > 0:
+                gammaSet = gammaSet[len(gammaSet) % numJobs:]
 
             # mp.log_to_stderr(logging.DEBUG) # uncomment to debug concurrency
 
-            gammaSets = np.reshape(gammaSet, [numProcs, -1])
-            outputQ   = mp.Queue()
-            tmpFiles  = [TemporaryFile() for _ in range(numProcs)]
-            procs     = [mp.Process(target=compressDataWorkerWrapper,
-                                    args=(outputQ, i, gammaSets[i], tmpFiles[i], delta, self.Xs, self.Ys, self.metric, self.gram, minCompress, maxCompress, greedy,),
-                                    kwargs={'logLevel': logLevel})
-                         for i in range(numProcs)]
+            tmpFiles  = [NamedTemporaryFile() for _ in range(numJobs)]
+            gammaSets = np.reshape(gammaSet, [numJobs, -1])
+            pool      = mp.Pool(numProcs) # TODO send Xs, Ys and gram in shared memory
+            results   = [pool.apply_async(func=compressDataWorker,
+                                          args=(i, gammaSets[i], tmpFiles[i].name, delta, self.Xs, self.Ys, self.metric, self.gram, minCompress, maxCompress, greedy,),
+                                          kwds={'logLevel': logLevel}) for i in range(numJobs)]
+            pool.close()
+            pool.join()
 
-            for p in procs:
-                p.start()
-
-            for p in procs:
-                p.join()
-
-            results = sorted([outputQ.get() for _ in procs], key=lambda r: r[0]) # sorted by qMin
+            results = sorted([r.get() for r in results], key=lambda r: r[0])  # sorted by qMin
             qMin, i, self.compression, bestGamma = results[0]
-            tmpFile = tmpFiles[i] if i is not None else 0
+            tmpFile = tmpFiles[i].name if i is not None else 0
 
         if qMin == float(np.inf):
             self.logger.critical('No gamma was chosen! check logs')
             return
 
-        chosen        = np.load(tmpFile)
+        chosen        = np.load(tmpFile, allow_pickle=True)
         self.chosenXs = chosen['X']
         self.chosenYs = chosen['Y']
 

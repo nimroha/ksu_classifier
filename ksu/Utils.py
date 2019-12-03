@@ -1,12 +1,18 @@
-import numpy as np
 import time
 import logging
+import sys
+import numpy as np
 
 from sklearn.neighbors import KNeighborsClassifier
 from collections       import Counter
 from math              import sqrt
 from tqdm              import tqdm
 from numba             import jit
+
+
+LOGGER_FORMAT = '%(asctime)s [%(levelname)s] PID %(process)d: %(module)s - %(message)s'
+READABLE_TIME = '%Y-%m-%d_%H.%M.%S'
+
 
 class TqdmHandler(logging.Handler):
     def __init__ (self, level=logging.NOTSET):
@@ -23,18 +29,18 @@ class TqdmHandler(logging.Handler):
 
 class TqdmStream(object):
     @classmethod
-    def write(_, msg):
+    def write(cls, msg):
         tqdm.write(msg, end='')
 
 def getDateTime():
-    return time.strftime('%d.%m.%y %H:%M:%S')
+    return time.strftime(READABLE_TIME)
 
 def parseInputData(dataPath):
     nodes = np.load(dataPath)
     try:
         data = {node: nodes[node] for node in ['X', 'Y']}
     except KeyError:
-        raise RuntimeError('file at {p} does not contain the nodes "X" "Y"'.format(dataPath))
+        raise RuntimeError('file at {p} does not contain the nodes "X" "Y"'.format(p=dataPath))
 
     return data
 
@@ -63,6 +69,9 @@ def computeQ(n, m, alpha, delta):
 
     :return: the approximation q
     """
+    if m >= n:
+        return float(np.inf)
+
     firstTerm  = (n * alpha) / (n - m)
     secondTerm = (m * np.log2(n) - np.log2(delta)) / (n - m)
     thirdTerm  = sqrt(((n * m * alpha * np.log2(n)) / (n - m) - np.log2(delta)) / (n - m))
@@ -159,3 +168,9 @@ def optimizedComputeLabels(gammaXs, gammaIdxs, Xs, Ys, gram): #unused #TODO debu
 
     return [c.most_common(1)[0][0] for c in groups]
 
+def configLogger(logger, level):
+    handler = logging.StreamHandler(sys.stdout)
+    handler.setFormatter(logging.Formatter(fmt=LOGGER_FORMAT, datefmt=READABLE_TIME))
+    handler.setLevel(level)
+    logger.addHandler(handler)
+    logger.setLevel(level)
