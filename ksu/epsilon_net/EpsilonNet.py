@@ -11,7 +11,7 @@ import numpy as np
 from math  import floor
 from numba import jit, prange
 
-@jit(nopython=True, nogil=True)
+@jit(nopython=True)
 def greedyConstructEpsilonNetWithGram(points, gram, epsilon):
     """
     Construct an Epsilon net in a greedy fashion.
@@ -24,21 +24,18 @@ def greedyConstructEpsilonNetWithGram(points, gram, epsilon):
     """
     idx = np.random.randint(0, len(points))
 
-    net     = np.zeros_like(points)
     netGram = np.full_like(gram, np.inf)
     taken   = np.full(len(points), False)
 
     netGram[idx] = gram[idx]
-    net[idx]     = points[idx]
     taken[idx]   = True
 
-    for i in prange(len(points)): #iterate rows
-        if np.min(netGram[:,i]) >= epsilon:
-            net[i]     = points[i]
+    for i in range(len(points)):
+        if np.min(netGram[:, i]) >= epsilon:
             netGram[i] = gram[i]
             taken[i]   = True
 
-    return net[taken], taken
+    return points[taken], taken
 
 @jit(nopython=True)
 def buildLevel(p, i, radius, gram, S, N, P, C):
@@ -188,4 +185,7 @@ def optimizedHieracConstructEpsilonNet(points, gram, epsilon):
 
     # guaranteed to by an e-net of at least epsilon
     netIndices = [i for i, x in enumerate(Svec[lowestLvl,:]) if x]
-    return points[netIndices], list(netIndices)
+    idxs = np.zeros(n)
+    idxs[netIndices] = True
+
+    return points[netIndices], idxs

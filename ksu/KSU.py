@@ -1,5 +1,3 @@
-import os
-import sys
 import logging
 import numpy as np
 import multiprocessing as mp
@@ -16,7 +14,7 @@ import ksu.Metrics
 from ksu.epsilon_net.EpsilonNet import greedyConstructEpsilonNetWithGram, \
                                        optimizedHieracConstructEpsilonNet
 from ksu.Utils import computeGammaSet, \
-                      computeLabels, \
+                      optimizedComputeLabels, \
                       optimizedComputeAlpha, \
                       computeQ, \
                       configLogger
@@ -46,46 +44,46 @@ def constructGammaNet(Xs, gram, gamma, prune=False, greedy=True):
     if prune:
         pass # TODO should we also implement this?
 
-    return chosenXs, np.where(chosen)
+    return chosenXs, chosen.astype(np.bool)
 
-def compressDataWorker(i, gammaSet, tmpFile, delta, Xs, Ys, metric, gram, minC, maxC, greedy, logLevel=logging.CRITICAL):
-    pid         = os.getpid()
+def compressDataWorker(i, gammaSet, tmpFile, delta, Xs, Ys, gram, minC, maxC, greedy):
     n           = len(Xs)
     numClasses  = len(np.unique(Ys))
     bestGamma   = 0.0
     qMin        = float(np.inf)
     bestCompres = 0.0
-    chosenXs    = None
-    chosenYs    = None
+    chosenXs    = np.empty(0)
+    chosenYs    = np.empty(0)
+    chosenIdxs  = np.empty(0)
     logger      = logging.getLogger('KSU')
 
     logger.debug('Choosing from {} gammas'.format(len(gammaSet)))
     for gamma in tqdm(gammaSet):
         tStart = time()
         gammaXs, gammaIdxs = constructGammaNet(Xs, gram, gamma, greedy=greedy)
-        compression = float(len(gammaXs)) / n
+        compression = float(np.sum(gammaIdxs)) / n
         logger.debug('Gamma: {g}, net construction took {t:.3f}s, compression: {c}'.format(
             g=gamma,
             t=time() - tStart,
             c=compression))
 
         if compression > maxC:
-            continue  # heuristic: don't bother compressing by less than an order of magnitude
+            continue  # don't bother compressing by less than maxC
 
         if compression < minC:
             break  # heuristic: gammas are increasing, so we might as well stop here
 
         if len(gammaXs) < numClasses:
             logger.debug(
-                'Gamma: {g}, compressed set smaller than number of classes ({cc} vs {c})'
+                'Gamma: {g}, compressed set smaller than number of classes ({cc} vs {c})\n'
                 'no use building a classifier that will never classify some classes'.format(
                     g=gamma,
                     cc=len(gammaXs),
                     c=numClasses))
-            break
+            break # heuristic: gammas are increasing, so we might as well stop here
 
         tStart  = time()
-        gammaYs = computeLabels(gammaXs, Xs, Ys, metric)
+        gammaYs = optimizedComputeLabels(gammaIdxs, gram, Ys)
         logger.debug('Gamma: {g}, label voting took {t:.3f}s'.format(
             g=gamma,
             t=time() - tStart))
@@ -112,23 +110,22 @@ def compressDataWorker(i, gammaSet, tmpFile, delta, Xs, Ys, metric, gram, minC, 
             bestGamma   = gamma
             chosenXs    = gammaXs
             chosenYs    = gammaYs
+            chosenIdxs  = gammaIdxs
             bestCompres = compression
 
-    if qMin == float(np.inf):
+    if qMin < float(np.inf):
+        logger.info('Chosen best gamma: {g}, which achieved q: {q}, and compression: {c}'.format(
+            g=bestGamma,
+            q=qMin,
+            c=bestCompres))
+    else:
         logger.info('No good gamma found between gammas: [{min} ... {max}]'.format(
-            p=pid,
             min=gammaSet.min(),
             max=gammaSet.max()))
-        return qMin, i, bestCompres, bestGamma
 
-    logger.info('Chosen best gamma: {g}, which achieved q: {q}, and compression: {c}'.format(
-        g=bestGamma,
-        q=qMin,
-        c=bestCompres))
-
-    np.savez(tmpFile, X=chosenXs, Y=chosenYs)
-
+    np.savez_compressed(tmpFile, X=chosenXs, Y=chosenYs, idxs=chosenIdxs)
     return qMin, i, bestCompres, bestGamma
+
 
 class KSU(object):
 
@@ -139,6 +136,7 @@ class KSU(object):
         self.n_jobs      = n_jobs
         self.chosenXs    = None
         self.chosenYs    = None
+        self.chosenIdxs  = None
         self.compression = None
         self.numClasses  = len(np.unique(self.Ys))
         self.prune       = prune # unused since pruning is not implemented yet
@@ -164,6 +162,7 @@ class KSU(object):
 
         self.gram = self.gram / np.max(self.gram)
 
+
     def getCompressedSet(self):
         """
         Getter for compressed set
@@ -177,6 +176,7 @@ class KSU(object):
 
         return self.chosenXs, self.chosenYs
 
+
     def getCompression(self):
         """
         Getter for compression ratio
@@ -189,6 +189,7 @@ class KSU(object):
             raise RuntimeError('getCompression - you must run KSU.compressData first')
 
         return self.compression
+
 
     def getClassifier(self):
         """
@@ -206,7 +207,8 @@ class KSU(object):
 
         return h
 
-    def compressData(self, delta=0.1, minCompress=0.01, maxCompress=0.1, greedy=True, stride=200, logLevel=logging.CRITICAL):
+
+    def compressData(self, delta=0.1, minCompress=0.01, maxCompress=0.1, greedy=True, stride=200):
         """
         Run the KSU algorithm to compress the dataset
 
@@ -215,7 +217,6 @@ class KSU(object):
         :param maxCompress: maximum compression ratio
         :param greedy: whether to use greedy or hierarchical strategy for net construction
         :param stride: how many gammas to skip between each iteration (similar gammas will produce similar nets)
-        :param logLevel: :mod:logging level
         """
         gammaSet = computeGammaSet(self.gram, stride=stride) # TODO add heuristic to throw away gammas that won't satisfy the compression limits
         numProcs = self.n_jobs if self.n_jobs > 0 else mp.cpu_count() + 1 + self.n_jobs
@@ -224,11 +225,13 @@ class KSU(object):
         if numProcs == 1:
             tmpFile = NamedTemporaryFile()
             qMin, _, self.compression, bestGamma = \
-            compressDataWorker(-1, gammaSet, tmpFile.name, delta, self.Xs, self.Ys, self.metric, self.gram, minC=minCompress, maxC=maxCompress, greedy=greedy, logLevel=logLevel)
+            compressDataWorker(-1, gammaSet, tmpFile.name + '.npz', delta, self.Xs, self.Ys, self.gram, minC=minCompress, maxC=maxCompress, greedy=greedy)
         else:
             numJobs = 4 * numProcs
-            if len(gammaSet) % numJobs > 0:
-                gammaSet = gammaSet[len(gammaSet) % numJobs:]
+            if gammaSet.shape[0] % numJobs > 0:
+                extra = -(gammaSet.shape[0] % -numJobs)
+                padding = np.ones([extra], dtype=gammaSet.dtype)
+                gammaSet = np.concatenate([gammaSet, padding])
 
             # mp.log_to_stderr(logging.DEBUG) # uncomment to debug concurrency
 
@@ -236,22 +239,23 @@ class KSU(object):
             gammaSets = np.reshape(gammaSet, [numJobs, -1])
             pool      = mp.Pool(numProcs) # TODO send Xs, Ys and gram in shared memory
             results   = [pool.apply_async(func=compressDataWorker,
-                                          args=(i, gammaSets[i], tmpFiles[i].name, delta, self.Xs, self.Ys, self.metric, self.gram, minCompress, maxCompress, greedy,),
-                                          kwds={'logLevel': logLevel}) for i in range(numJobs)]
+                                          args=(i, gammaSets[i], tmpFiles[i].name + '.npz', delta, self.Xs, self.Ys, self.gram, minCompress, maxCompress, greedy,))
+                         for i in range(numJobs)]
             pool.close()
             pool.join()
 
             results = sorted([r.get() for r in results], key=lambda r: r[0])  # sorted by qMin
             qMin, i, self.compression, bestGamma = results[0]
-            tmpFile = tmpFiles[i].name if i is not None else 0
+            tmpFile = tmpFiles[i] if i is not None else 0
 
         if qMin == float(np.inf):
             self.logger.critical('No gamma was chosen! check logs')
             return
 
-        chosen        = np.load(tmpFile, allow_pickle=True)
-        self.chosenXs = chosen['X']
-        self.chosenYs = chosen['Y']
+        chosen          = np.load(tmpFile.name + '.npz', allow_pickle=True)
+        self.chosenXs   = chosen['X']
+        self.chosenYs   = chosen['Y']
+        self.chosenIdxs = chosen['idxs']
 
         self.logger.info('Chosen best gamma: {g}, which achieved q: {q}, and compression: {c}'.format(
             g=bestGamma,
