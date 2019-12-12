@@ -18,8 +18,6 @@ MAX_DATA_SIZE = 100000
 STRIDE        = 200
 
 def main(argv=None):
-    if argv is None:
-        argv = sys.argv
 
     parser = argparse.ArgumentParser(description='Run a comparison between 1-NN and KSU on CoverType Dataset')
     parser.add_argument('--data_in',    help='Path to input data file (in .npz format with 2 nodes named X and Y)',          required=True)
@@ -30,10 +28,10 @@ def main(argv=None):
     parser.add_argument('--max_points', help='Maximum number of data points to consider',                                    default=MAX_DATA_SIZE, type=int)
     parser.add_argument('--mode',       help='which constuction mode.\n'
                                              '"G" for greedy (faster, but bigger net), "H" for hierarchical',                default="G", choices=['G', 'H'])
-    parser.add_argument('--num_procs',  help='Number of processes to use for computation',                                   default=1, type=int)
+    parser.add_argument('--num_jobs',   help='Number of processes to use for computation (scipy semantics)',                 default=1, type=int)
     parser.add_argument('--log_level',  help='Logging level',                                                                default=logging.CRITICAL)
 
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
 
     dataPath  = args.data_in
     metric    = args.metric
@@ -43,7 +41,7 @@ def main(argv=None):
     testRatio = args.test_ratio
     stride    = args.stride
     logLevel  = args.log_level
-    numProcs  = args.num_procs
+    numJobs  = args.num_jobs
 
     start = time()
     data = np.loadtxt(dataPath, dtype=np.int32, delimiter=',')
@@ -71,7 +69,7 @@ def main(argv=None):
     # full set:
     print('Full set:')
     startAll = time()
-    h = KNeighborsClassifier(n_neighbors=1, metric=metric, algorithm='auto', n_jobs=-1)
+    h = KNeighborsClassifier(n_neighbors=1, metric=metric, algorithm='auto', n_jobs=numJobs)
     start = time()
     h.fit(trainX, trainY)
     print('Fit time: {:.3f}s'.format(time() - start))
@@ -85,11 +83,11 @@ def main(argv=None):
 
     # KSU
     startAll = start = time()
-    ksu = KSU(trainX, trainY, metric, logLevel=logLevel, n_jobs=-1)
+    ksu = KSU(trainX, trainY, metric, logLevel=logLevel, n_jobs=numJobs)
     print("Init time: {:.3f}s".format(time() - start))
 
     start = time()
-    ksu.compressData(delta=delta, stride=stride, greedy=mode == 'G', numProcs=numProcs, logLevel=logLevel, maxCompress=0.5)
+    ksu.compressData(delta=delta, stride=stride, greedy=mode == 'G', maxCompress=0.5)
     print('Compress time: {:.3f}s'.format(time() - start))
 
     # stats for compressed set
