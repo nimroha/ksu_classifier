@@ -23,6 +23,19 @@ METRICS = {v:v for v in VALID_METRICS['brute'] if v != 'precomputed'}
 METRICS['EditDistance'] = ksu.Metrics.editDistance
 METRICS['EarthMover']   = ksu.Metrics.earthMoverDistance
 
+sharedLargeArrays = {}
+
+
+def initWorker(X, Xshape, Y, Yshape, gram, gramShape):
+    global sharedLargeArrays
+
+    sharedLargeArrays['X'] = X
+    sharedLargeArrays['X.shape'] = Xshape
+    sharedLargeArrays['Y'] = Y
+    sharedLargeArrays['Y.shape'] = Yshape
+    sharedLargeArrays['gram'] = gram
+    sharedLargeArrays['gram.shape'] = gramShape
+
 
 def constructGammaNet(Xs, gram, gamma, prune=False, greedy=True):
     """
@@ -46,16 +59,23 @@ def constructGammaNet(Xs, gram, gamma, prune=False, greedy=True):
 
     return chosenXs, chosen.astype(np.bool)
 
-def compressDataWorker(i, gammaSet, tmpFile, delta, Xs, Ys, gram, minC, maxC, greedy):
+
+def compressDataWorker(i, gammaSet, tmpFile, delta, minC, maxC, greedy):
+    # load shared arrays
+    Xs   = np.frombuffer(sharedLargeArrays['X'],    dtype=np.float32).reshape(sharedLargeArrays['X.shape'])
+    Ys   = np.frombuffer(sharedLargeArrays['Y'],    dtype=np.int32)  .reshape(sharedLargeArrays['Y.shape'])
+    gram = np.frombuffer(sharedLargeArrays['gram'], dtype=np.float32).reshape(sharedLargeArrays['gram.shape'])
+
     n           = len(Xs)
     numClasses  = len(np.unique(Ys))
     bestGamma   = 0.0
-    qMin        = float(np.inf)
     bestCompres = 0.0
+    qMin        = float(np.inf)
     chosenXs    = np.empty(0)
     chosenYs    = np.empty(0)
     chosenIdxs  = np.empty(0)
     logger      = logging.getLogger('KSU')
+
 
     logger.debug('Choosing from {} gammas'.format(len(gammaSet)))
     for gamma in tqdm(gammaSet):
@@ -67,11 +87,8 @@ def compressDataWorker(i, gammaSet, tmpFile, delta, Xs, Ys, gram, minC, maxC, gr
             t=time() - tStart,
             c=compression))
 
-        if compression > maxC:
-            continue  # don't bother compressing by less than maxC
-
-        if compression < minC:
-            break  # heuristic: gammas are increasing, so we might as well stop here
+        if not (minC < compression < maxC):
+            continue  # don't bother compressing if not within limits
 
         if len(gammaXs) < numClasses:
             logger.debug(
@@ -130,15 +147,13 @@ def compressDataWorker(i, gammaSet, tmpFile, delta, Xs, Ys, gram, minC, maxC, gr
 class KSU(object):
 
     def __init__(self, Xs, Ys, metric, gram=None, prune=False, logLevel=logging.CRITICAL, n_jobs=1):
-        self.Xs          = Xs
-        self.Ys          = Ys
         self.metric      = metric
         self.n_jobs      = n_jobs
         self.chosenXs    = None
         self.chosenYs    = None
         self.chosenIdxs  = None
         self.compression = None
-        self.numClasses  = len(np.unique(self.Ys))
+        self.numClasses  = len(np.unique(Ys))
         self.prune       = prune # unused since pruning is not implemented yet
 
         self.logger = logging.getLogger('KSU')
@@ -155,12 +170,23 @@ class KSU(object):
         if gram is None:
             self.logger.info('Computing Gram matrix...')
             tStartGram = time()
-            self.gram  = pairwise_distances(self.Xs, metric=self.metric, n_jobs=self.n_jobs)
+            gram  = pairwise_distances(Xs, metric=self.metric, n_jobs=self.n_jobs)
             self.logger.debug('Gram computation took {:.3f}s'.format(time() - tStartGram))
-        else:
-            self.gram = gram
 
-        self.gram = self.gram / np.max(self.gram)
+        gram /= gram.max()
+
+        # create shared arrays
+        self.Xs   = mp.RawArray('f', int(np.prod(Xs.shape)))
+        self.Ys   = mp.RawArray('i', int(np.prod(Ys.shape)))
+        self.gram = mp.RawArray('f', int(np.prod(gram.shape)))
+
+        np.copyto(np.frombuffer(self.Xs,   dtype=np.float32).reshape(Xs.shape),   Xs.astype(np.float32))
+        np.copyto(np.frombuffer(self.Ys,   dtype=np.int32)  .reshape(Ys.shape),   Ys.astype(np.int32))
+        np.copyto(np.frombuffer(self.gram, dtype=np.float32).reshape(gram.shape), gram.astype(np.float32))
+
+        self.XsShape   = Xs.shape
+        self.YsShape   = Ys.shape
+        self.gramShape = gram.shape
 
 
     def getCompressedSet(self):
@@ -218,35 +244,36 @@ class KSU(object):
         :param greedy: whether to use greedy or hierarchical strategy for net construction
         :param stride: how many gammas to skip between each iteration (similar gammas will produce similar nets)
         """
-        gammaSet = computeGammaSet(self.gram, stride=stride) # TODO add heuristic to throw away gammas that won't satisfy the compression limits
+        gammaSet = computeGammaSet(self.gram, stride=stride).astype(np.float32) # TODO add heuristic to throw away gammas that won't satisfy the compression limits
         numProcs = self.n_jobs if self.n_jobs > 0 else mp.cpu_count() + 1 + self.n_jobs
         self.logger.info('using {n} cores to process {g} gammas'.format(n=numProcs, g=len(gammaSet)))
 
         if numProcs == 1:
-            tmpFile = NamedTemporaryFile()
-            qMin, _, self.compression, bestGamma = \
-            compressDataWorker(-1, gammaSet, tmpFile.name + '.npz', delta, self.Xs, self.Ys, self.gram, minC=minCompress, maxC=maxCompress, greedy=greedy)
+            numJobs = 1
         else:
             numJobs = 4 * numProcs
-            if gammaSet.shape[0] % numJobs > 0:
-                extra = -(gammaSet.shape[0] % -numJobs)
-                padding = np.ones([extra], dtype=gammaSet.dtype)
-                gammaSet = np.concatenate([gammaSet, padding])
 
-            # mp.log_to_stderr(logging.DEBUG) # uncomment to debug concurrency
+        if gammaSet.shape[0] % numJobs > 0:
+            extra = -(gammaSet.shape[0] % -numJobs)
+            padding = np.ones([extra], dtype=gammaSet.dtype)
+            gammaSet = np.concatenate([gammaSet, padding])
 
-            tmpFiles  = [NamedTemporaryFile() for _ in range(numJobs)]
-            gammaSets = np.reshape(gammaSet, [numJobs, -1])
-            pool      = mp.Pool(numProcs) # TODO send Xs, Ys and gram in shared memory
-            results   = [pool.apply_async(func=compressDataWorker,
-                                          args=(i, gammaSets[i], tmpFiles[i].name + '.npz', delta, self.Xs, self.Ys, self.gram, minCompress, maxCompress, greedy,))
-                         for i in range(numJobs)]
-            pool.close()
-            pool.join()
+        # mp.log_to_stderr(logging.DEBUG) # uncomment to debug concurrency
 
-            results = sorted([r.get() for r in results], key=lambda r: r[0])  # sorted by qMin
-            qMin, i, self.compression, bestGamma = results[0]
-            tmpFile = tmpFiles[i] if i is not None else 0
+        tmpFiles  = [NamedTemporaryFile() for _ in range(numJobs)]
+        gammaSets = np.reshape(gammaSet, [numJobs, -1])
+        pool      = mp.Pool(processes=numProcs,
+                            initializer=initWorker,
+                            initargs=(self.Xs, self.XsShape, self.Ys, self.YsShape, self.gram, self.gramShape,))
+        results   = [pool.apply_async(func=compressDataWorker,
+                                      args=(i, gammaSets[i], tmpFiles[i].name + '.npz', delta, minCompress, maxCompress, greedy,),)
+                     for i in range(numJobs)]
+        pool.close()
+        pool.join()
+
+        results = sorted([r.get() for r in results], key=lambda r: r[0])  # sorted by qMin
+        qMin, i, self.compression, bestGamma = results[0]
+        tmpFile = tmpFiles[i] if i is not None else 0
 
         if qMin == float(np.inf):
             self.logger.critical('No gamma was chosen! check logs')
