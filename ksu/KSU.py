@@ -6,7 +6,7 @@ from time                     import time
 from tqdm                     import tqdm
 from tempfile                 import NamedTemporaryFile
 from sklearn.neighbors        import KNeighborsClassifier
-from sklearn.neighbors.base   import VALID_METRICS
+from sklearn.neighbors        import VALID_METRICS
 from sklearn.metrics.pairwise import pairwise_distances
 
 
@@ -89,6 +89,9 @@ def compressDataWorker(i, gammaSet, tmpFile, delta, minC, maxC, greedy):
 
         if not (minC < compression < maxC):
             continue  # don't bother compressing if not within limits
+
+        if (compression / 2) < minC:
+            break # heuristic: gammas are increasing, so we might as well stop here
 
         if len(gammaXs) < numClasses:
             logger.debug(

@@ -9,33 +9,29 @@ variable names sadly avoid normal convention to correspond to the paper notation
 import numpy as np
 
 from math  import floor
-from numba import jit, prange
+from numba import jit
 
 @jit(nopython=True)
 def greedyConstructEpsilonNetWithGram(points, gram, epsilon):
     """
     Construct an Epsilon net in a greedy fashion.
 
-    :param points: points to construct a net from
-    :param gram: gram matrix of the points (for some metric)
+    :param points: points to construct a net from, shape [num_points, dim_point]
+    :param gram: gram matrix of the points (for some metric), shape [num_points, num_points]
     :param epsilon: epsilon parameter
 
     :return: the points chosen for the net and their indices (as an indicator vector)
     """
-    idx = np.random.randint(0, len(points))
-
+    permutation = np.random.permutation(points.shape[0])
     netGram = np.full_like(gram, np.inf)
-    taken   = np.full(len(points), False)
-
-    netGram[idx] = gram[idx]
-    taken[idx]   = True
-
-    for i in range(len(points)):
+    taken   = np.full(points.shape[0], fill_value=False)
+    for i in permutation:
         if np.min(netGram[:, i]) >= epsilon:
             netGram[i] = gram[i]
             taken[i]   = True
 
     return points[taken], taken
+
 
 @jit(nopython=True)
 def buildLevel(p, i, radius, gram, S, N, P, C):
@@ -67,6 +63,7 @@ def buildLevel(p, i, radius, gram, S, N, P, C):
         if gram[r, p] < 4 * radius:
             N[p, i - 1].add(r)
             N[r, i - 1].add(p)
+
 
 # @jit(nopython=True)
 def optimizedBuildLevel(p, i, radius, gram, S, N, P, C):
@@ -103,6 +100,7 @@ def optimizedBuildLevel(p, i, radius, gram, S, N, P, C):
     S[i + 1, p]    = True
     N[p, i + 1, p] = True
     C[P[p, i], i + 1] |= P[p, i]
+
 
 def hieracConstructEpsilonNet(points, gram, epsilon):
     """
@@ -147,6 +145,7 @@ def hieracConstructEpsilonNet(points, gram, epsilon):
 
     # guaranteed to by an e-net of at least epsilon
     return points[list(S[lowestLvl])], list(S[lowestLvl])
+
 
 def optimizedHieracConstructEpsilonNet(points, gram, epsilon):
     """
